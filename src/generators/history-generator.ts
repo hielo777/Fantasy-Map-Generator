@@ -5,7 +5,17 @@ declare global {
   var History: HistoryModule;
 }
 
-export type HistoricalEventType = "founding" | "ruler" | "war" | "peace" | "disaster" | "golden-age" | "religious" | "rebellion";
+export type HistoricalEventType =
+  | "legend"
+  | "founding"
+  | "figure"
+  | "ruler"
+  | "war"
+  | "peace"
+  | "disaster"
+  | "golden-age"
+  | "religious"
+  | "rebellion";
 
 export interface HistoricalEvent {
   year: number;
@@ -21,8 +31,32 @@ export interface Ruler {
   notable?: string;
 }
 
+export type FigureRole =
+  | "Rebellion Leader"
+  | "Inventor"
+  | "Philosopher"
+  | "Religious Figure"
+  | "Explorer"
+  | "Artist"
+  | "General"
+  | "Merchant Prince";
+
+export interface NotableFigure {
+  name: string;
+  role: FigureRole;
+  year: number;
+  text: string;
+}
+
+interface FigureContext {
+  cultureName: string;
+  religionName?: string;
+  campaignName?: string;
+}
+
 // epithet -> what they are remembered for, used both for ruler naming and event text
 const EPITHETS: Record<string, string> = {
+// --- Original Epithets ---
   "the Great": "expanded the realm's borders and is remembered as a unifying force",
   "the Wise": "was known for just laws and a well-run court",
   "the Bold": "led armies personally and won renown on the battlefield",
@@ -32,7 +66,24 @@ const EPITHETS: Record<string, string> = {
   "the Peacemaker": "ended a long-standing conflict through negotiation rather than arms",
   "the Unlucky": "presided over famine, plague or defeat",
   "the Younger": "inherited the throne while still a child, ruling under regents at first",
-  "the Usurper": "seized power from a rival claimant"
+  "the Usurper": "seized power from a rival claimant",
+
+  // --- New Epithets ---
+  "the Golden": "reigned over an unprecedented era of economic wealth and booming trade",
+  "the Mad": "issued erratic decrees that destabilized the court and fractured the nobility",
+  "the Silent": "was notoriously reclusive, managing state affairs entirely through an inner circle of trusted viziers",
+  "the Iron": "ruthlessly crushed domestic dissension and built an unbreakable centralized bureaucracy",
+  "the Navigator": "subsidized sweeping exploration efforts, expanding the state's knowledge of distant coastlines",
+  "the Scholar": "amassed a legendary imperial library and placed philosophers in high government offices",
+  "the Benevolent": "slashed taxes on the peasantry and established sweeping grain-dole safety nets",
+  "the Just": "standardized the penal code, showing no favoritism to the upper nobility during trials",
+  "the Drunkard": "neglected state duties in favor of lavish court feasts, leaving administration to corrupt ministers",
+  "the Short-Lived": "passed away under mysterious circumstances mere months after ascending the throne",
+  "the Restorer": "reclaimed lost territories and rebuilt the capital following a period of deep ruin",
+  "the Vain": "drained the royal treasury to construct monuments, statues, and self-glorifying portraits",
+  "the Exile": "spent the early years of their reign fleeing a coup before triumphantly returning with a foreign army",
+  "the Zealot": "waged aggressive religious wars and violently purged unorthodox beliefs from the land",
+  "the Lasting": "reigned for over half a century, providing an era of deep structural stability despite their quiet nature"
 };
 
 const FOUNDING_TEMPLATES: Record<string, string[]> = {
@@ -104,6 +155,45 @@ const FLAVOR_EVENTS: Record<string, { type: HistoricalEventType; title: string; 
   }
 };
 
+// forms used to name the fictional pre-founding entity; {name} is filled with a generated short name
+const LEGEND_FORMS = [
+  "the Kingdom of {name}",
+  "the {name} Confederacy",
+  "the Tribes of {name}",
+  "the {name} Dominion",
+  "Old {name}",
+  "the {name} Hegemony"
+];
+
+const LEGEND_DOWNFALLS: Record<string, (entity: string) => string> = {
+  Invasion: entity => `${entity} was overrun by invaders from beyond its borders, and its rule collapsed within a generation.`,
+  "Civil War": entity => `${entity} tore itself apart in a long civil war between rival claimants.`,
+  Plague: entity => `A great plague emptied the halls of ${entity}, and its people scattered to find safer ground.`,
+  Drought: entity => `Years of drought withered the fields of ${entity}, forcing its people to abandon their homeland.`,
+  Schism: entity => `${entity} fractured as its people split over rival faiths, never to reunite as one.`,
+  Migration: entity => `${entity} was slowly abandoned as its people migrated in search of richer lands.`
+};
+
+const FIGURE_TEMPLATES: Record<FigureRole, (name: string, state: State, ctx: FigureContext) => string> = {
+  "Rebellion Leader": (name, state) =>
+    `${name} led a popular uprising against the rulers of ${state.name}, giving voice to years of grievance.`,
+  Inventor: (name, state) =>
+    `${name}'s innovations in ${ra(["shipbuilding", "metalwork", "irrigation", "fortification", "milling", "navigation"])} changed daily life across ${state.name}.`,
+  Philosopher: (name, _state, ctx) =>
+    `${name}'s writings on ${ra(["governance", "ethics", "the nature of the divine", "the duties of rulers", "the order of the world"])} shaped how the ${ctx.cultureName} people saw themselves.`,
+  "Religious Figure": (name, state, ctx) =>
+    `${name} ${ctx.religionName ? `reformed the practice of ${ctx.religionName}` : "founded a new religious movement"}, drawing a large following within ${state.name}.`,
+  Explorer: (name, state) =>
+    `${name} charted unknown lands beyond ${state.name}'s borders, opening new routes for trade and settlement.`,
+  Artist: (name, _state, ctx) => `${name}'s work is still celebrated as a high point of ${ctx.cultureName} art and craft.`,
+  General: (name, state, ctx) =>
+    ctx.campaignName
+      ? `${name} distinguished themselves during the ${ctx.campaignName}, becoming a celebrated hero of ${state.name}.`
+      : `${name} rose through the ranks to become one of ${state.name}'s most celebrated military commanders.`,
+  "Merchant Prince": (name, state) =>
+    `${name} built a trading fortune that funded much of ${pack.burgs[state.capital]?.name || state.name}'s growth.`
+};
+
 class HistoryModule {
   // generate history for all states; pass a stateId to (re)generate a single state only
   generate(regenerate = false, stateId: number | null = null) {
@@ -117,7 +207,10 @@ class HistoryModule {
       const foundingYear = this.getFoundingYear();
       const rulers = this.generateDynasty(state, foundingYear);
       state.rulers = rulers;
-      state.history = this.buildTimeline(state, foundingYear, rulers).sort((a, b) => a.year - b.year);
+
+      const { events, figures } = this.buildTimeline(state, foundingYear, rulers);
+      state.figures = figures.sort((a, b) => a.year - b.year);
+      state.history = events.sort((a, b) => a.year - b.year);
     });
 
     TIME && console.timeEnd("generateHistory");
@@ -129,11 +222,15 @@ class HistoryModule {
     return options.year - offset;
   }
 
-  private buildTimeline(state: State, foundingYear: number, rulers: Ruler[]): HistoricalEvent[] {
-    const events: HistoricalEvent[] = [this.foundingEvent(state, foundingYear)];
+  private buildTimeline(
+    state: State,
+    foundingYear: number,
+    rulers: Ruler[]
+  ): { events: HistoricalEvent[]; figures: NotableFigure[] } {
+    const events: HistoricalEvent[] = [];
 
-    const origin = this.originEvent(state, foundingYear);
-    if (origin) events.push(origin);
+    events.push(...this.legendaryEvents(state, foundingYear));
+    events.push(this.foundingEvent(state, foundingYear));
 
     rulers.forEach(ruler => {
       if (!ruler.notable) return;
@@ -148,6 +245,59 @@ class HistoryModule {
     events.push(...this.warEvents(state, foundingYear));
     events.push(...this.diplomacyEvents(state, foundingYear));
     events.push(...this.flavorEvents(state, foundingYear));
+
+    const { events: figureEvents, figures } = this.figureEvents(state, foundingYear);
+    events.push(...figureEvents);
+
+    return { events, figures };
+  }
+
+  // fictional pre-founding era: a predecessor entity that rose, thrived and fell before the current state existed
+  private legendaryEvents(state: State, foundingYear: number): HistoricalEvent[] {
+    const culture = pack.cultures[state.culture];
+    const originId = culture ? culture.origins?.find(o => o !== null && o !== culture.i) : undefined;
+    const originCulture = originId == null ? null : pack.cultures[originId];
+    const rootCultureName = originCulture?.name || culture?.name || "the peoples of this land";
+
+    const legendSpan = gauss(250, 100, 80, 500);
+    const emergenceYear = foundingYear - legendSpan;
+    const capitalName = pack.burgs[state.capital]?.name || state.name;
+    const entityName = ra(LEGEND_FORMS).replace("{name}", Names.getCultureShort(originId ?? state.culture));
+
+    const events: HistoricalEvent[] = [
+      {
+        year: emergenceYear,
+        type: "legend",
+        title: `Rise of ${entityName}`,
+        text: `Long before ${state.name} took its current form, ${rootCultureName} coalesced into ${entityName}, an early power that first brought order to the region.`
+      }
+    ];
+
+    if (P(0.7)) {
+      const peakYear = rand(emergenceYear + 10, emergenceYear + Math.max(20, Math.round(legendSpan * 0.4)));
+      events.push({
+        year: peakYear,
+        type: "legend",
+        title: `Height of ${entityName}`,
+        text: `${entityName} reached the height of its power, its influence extending far beyond its heartland.`
+      });
+    }
+
+    const downfallKey = ra(Object.keys(LEGEND_DOWNFALLS));
+    const downfallYear = rand(Math.round(emergenceYear + legendSpan * 0.5), foundingYear - 15);
+    events.push({
+      year: downfallYear,
+      type: "legend",
+      title: `Fall of ${entityName}`,
+      text: LEGEND_DOWNFALLS[downfallKey](entityName)
+    });
+
+    events.push({
+      year: foundingYear - rand(5, 14),
+      type: "legend",
+      title: "Between Two Ages",
+      text: `In the generations that followed, small settlements rose from the remains of ${entityName}, one of which would grow into ${capitalName}.`
+    });
 
     return events;
   }
@@ -165,23 +315,6 @@ class HistoryModule {
       .replace(/{state}/g, state.name);
 
     return { year: foundingYear, type: "founding", title: `Founding of ${state.name}`, text };
-  }
-
-  private originEvent(state: State, foundingYear: number): HistoricalEvent | null {
-    const culture = pack.cultures[state.culture];
-    if (!culture) return null;
-
-    const originId = culture.origins?.find(o => o !== null && o !== culture.i);
-    const origin = originId == null ? null : pack.cultures[originId];
-    if (!origin) return null;
-
-    const year = foundingYear - rand(10, 60);
-    return {
-      year,
-      type: "founding",
-      title: "Origins",
-      text: `The ${culture.name} people trace their roots to the ${origin.name}, who once dwelt in neighboring lands.`
-    };
   }
 
   private generateDynasty(state: State, foundingYear: number): Ruler[] {
@@ -286,6 +419,37 @@ class HistoryModule {
     }
 
     return events;
+  }
+
+  // notable non-ruler individuals: rebellion leaders, inventors, philosophers, religious figures...
+  private figureEvents(state: State, foundingYear: number): { events: HistoricalEvent[]; figures: NotableFigure[] } {
+    const culture = pack.cultures[state.culture];
+    const religion = pack.religions[pack.cells.religion[state.center]];
+    const roles = Object.keys(FIGURE_TEMPLATES) as FigureRole[];
+    const count = rand(2, 5);
+
+    const figures: NotableFigure[] = [];
+    const events: HistoricalEvent[] = [];
+
+    for (let i = 0; i < count; i++) {
+      const role = ra(roles);
+      const year = rand(foundingYear + 10, Math.max(foundingYear + 11, options.year - 2));
+      const campaign =
+        role === "General" ? (state.campaigns || []).find(c => c.start <= year && (c.end ?? options.year) >= year) : undefined;
+
+      const ctx: FigureContext = {
+        cultureName: culture?.name || state.name,
+        religionName: religion?.name,
+        campaignName: campaign?.name
+      };
+      const name = Names.getCulture(state.culture);
+      const text = FIGURE_TEMPLATES[role](name, state, ctx);
+
+      figures.push({ name, role, year, text });
+      events.push({ year, type: "figure", title: `${name}, ${role}`, text });
+    }
+
+    return { events, figures };
   }
 }
 

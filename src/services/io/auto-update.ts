@@ -1194,4 +1194,11 @@ export function resolveVersionConflicts(mapVersion: string): void {
       if (state.i && !state.removed && !state.history?.length) History.generate(true, state.i);
     });
   }
+
+  if (isOlderThan("1.136.0")) {
+    // v1.136.0 added notable figures and a pre-founding legendary era to state history
+    pack.states.forEach(state => {
+      if (state.i && !state.removed && !state.figures) History.generate(true, state.i);
+    });
+  }
 }
