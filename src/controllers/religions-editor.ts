@@ -256,6 +256,7 @@ function religionsEditorAddLines(): void {
   });
   $body.querySelectorAll("fill-box").forEach(el => void el.on("click", religionChangeColor));
   $body.querySelectorAll("div > input.religionName").forEach(el => void el.on("input", religionChangeName));
+  $body.querySelectorAll("div > input.religionName").forEach(el => void el.on("change", religionRenameHistoryHook));
   $body.querySelectorAll("div > select.religionType").forEach(el => void el.on("change", religionChangeType));
   $body.querySelectorAll("div > input.religionForm").forEach(el => void el.on("input", religionChangeForm));
   $body.querySelectorAll("div > input.religionDeity").forEach(el => void el.on("input", religionChangeDeity));
@@ -375,6 +376,12 @@ function religionChangeName(this: HTMLInputElement): void {
     this.value,
     religions.flatMap(c => (c.code ? [c.code] : []))
   );
+}
+
+// fires on blur/enter (not per keystroke) once the name has actually changed
+function religionRenameHistoryHook(this: HTMLInputElement): void {
+  const religionId = +(this.parentNode as HTMLElement).dataset.id!;
+  History.onReligionRename(religionId);
 }
 
 function religionChangeType(this: HTMLSelectElement): void {

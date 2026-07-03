@@ -257,6 +257,7 @@ function culturesEditorAddLines(): void {
   });
   $body.querySelectorAll("fill-box").forEach($el => void $el.on("click", cultureChangeColor));
   $body.querySelectorAll("div > input.cultureName").forEach($el => void $el.on("input", cultureChangeName));
+  $body.querySelectorAll("div > input.cultureName").forEach($el => void $el.on("change", cultureRenameHistoryHook));
   $body.querySelectorAll("div > span.icon-cw").forEach($el => void $el.on("click", cultureRegenerateName));
   $body.querySelectorAll("div > input.cultureExpan").forEach($el => void $el.on("change", cultureChangeExpansionism));
   $body.querySelectorAll("div > select.cultureType").forEach($el => void $el.on("change", cultureChangeType));
@@ -355,6 +356,12 @@ function cultureChangeName(this: HTMLInputElement): void {
   );
 }
 
+// fires on blur/enter (not per keystroke) once the name has actually changed
+function cultureRenameHistoryHook(this: HTMLInputElement): void {
+  const culture = +(this.parentNode as HTMLElement).dataset.id!;
+  History.onCultureRename(culture);
+}
+
 function cultureRegenerateName(this: HTMLElement): void {
   const cultureId = +(this.parentNode as HTMLElement).dataset.id!;
   const base = pack.cultures[cultureId].base;
@@ -366,6 +373,7 @@ function cultureRegenerateName(this: HTMLElement): void {
   const name = Names.getCultureShort(cultureId);
   (this.parentNode as HTMLElement).querySelector<HTMLInputElement>("input.cultureName")!.value = name;
   pack.cultures[cultureId].name = name;
+  History.onCultureRename(cultureId);
 }
 
 function cultureChangeExpansionism(this: HTMLInputElement): void {

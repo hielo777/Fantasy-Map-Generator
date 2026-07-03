@@ -503,6 +503,7 @@ function editStateName(state: number): void {
     s.name = nameInput.value;
     s.formName = formSelect.value;
     s.fullName = fullNameInput.value;
+    if (nameChanged) History.onStateRename(s.i);
     if (changed && ensureEl<HTMLInputElement>("stateNameEditorUpdateLabel").checked) drawStateLabels([s.i]);
     refreshStatesEditor();
   }

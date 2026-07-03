@@ -1,5 +1,5 @@
-import { ensureEl } from "../utils";
 import type { HistoricalEvent } from "@/generators/history-generator";
+import { ensureEl } from "../utils";
 
 let $body: HTMLElement;
 let isInitialized = false;
@@ -77,7 +77,10 @@ function populateSelect(): void {
   pack.states
     .filter(s => s.i && !s.removed)
     .sort((a, b) => (a.name! > b.name! ? 1 : -1))
-    .forEach(s => select.options.add(new Option(s.fullName || s.name, String(s.i), false, s.i === activeStateId)));
+    .forEach(s => {
+      select.options.add(new Option(s.fullName || s.name, String(s.i), false, s.i === activeStateId));
+    });
+    //.forEach(s => select.options.add(new Option(s.fullName || s.name, String(s.i), false, s.i === activeStateId)));
 }
 
 function formatYear(year: number): string {
