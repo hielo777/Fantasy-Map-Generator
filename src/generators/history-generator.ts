@@ -412,9 +412,17 @@ const FIGURE_TEMPLATES: Record<FigureRole, string[]> = {
 };
 
 class HistoryModule {
+  // NEW: Stores the shared mythic backdrop for the current world map generation
+  private activeGlobalEra: typeof ANCIENT_ERAS[number] | null = null;
+
   // generate history for all states; pass a stateId to (re)generate a single state only
   generate(regenerate = false, stateId: number | null = null) {
     TIME && console.time("generateHistory");
+
+    // NEW: Establish the global era anchor before iterating through individual states
+    if (regenerate || !this.activeGlobalEra) {
+      this.activeGlobalEra = ra(ANCIENT_ERAS);
+    }
 
     pack.states.forEach(state => {
       if (!state.i || state.removed) return;
