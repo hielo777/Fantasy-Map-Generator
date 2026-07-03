@@ -484,7 +484,7 @@ class HistoryModule {
     const offset = gauss(280, 140, 40, maxOffset);
     return options.year - offset;
   }
-/*
+  /*
   private buildTimeline(
     state: State,
     foundingYear: number,
@@ -570,7 +570,7 @@ class HistoryModule {
       }));
 
     const { events: figureEvents, figures } = this.figureEvents(state, foundingYear);
-    
+
     const legendaryEvents: HistoricalEvent[] = [
       ...this.legendaryEvents(state, foundingYear),
       this.foundingEvent(state, foundingYear)
@@ -578,7 +578,7 @@ class HistoryModule {
 
     // 2. Sort each bucket descending (Recent -> Ancient)
     const sortDescending = (a: HistoricalEvent, b: HistoricalEvent) => b.year - a.year;
-    
+
     recordedEvents.sort(sortDescending);
     rulerEvents.sort(sortDescending);
     figureEvents.sort(sortDescending);
@@ -586,17 +586,12 @@ class HistoryModule {
 
     // 3. Combine in your requested order
     // Recorded -> Rulers/Individuals -> Legendary
-    const events = [
-      ...recordedEvents,
-      ...rulerEvents,
-      ...figureEvents,
-      ...legendaryEvents
-    ];
+    const events = [...recordedEvents, ...rulerEvents, ...figureEvents, ...legendaryEvents];
 
     // Final sorting for state.figures remains chronological (as requested by typical generator logic)
     // but the history array now reflects your custom order
     state.figures = figures.sort((a, b) => b.year - a.year);
-    state.history = events; 
+    state.history = events;
 
     return { events, figures };
   }
@@ -1405,19 +1400,19 @@ class HistoryModule {
   private flavorEvents(state: State, foundingYear: number): HistoricalEvent[] {
     const religion = pack.religions[pack.cells.religion[state.center]]?.name;
     const keys = Object.keys(FLAVOR_EVENTS);
-    
+
     // --- INCREASED DENSITY ---
     // Instead of rand(1, 3), scale based on the state's total lifespan
     const stateAge = options.year - foundingYear;
     const count = Math.max(5, Math.round(stateAge / 40)); // Generates ~1 event every 40 years
-    
+
     const events: HistoricalEvent[] = [];
     const usedYears = new Set<number>();
 
     for (let i = 0; i < count; i++) {
       const key = ra(keys);
       const { type, title, text } = FLAVOR_EVENTS[key];
-      
+
       // Ensure we don't accidentally stack multiple flavor events on the exact same year
       let year = rand(foundingYear + 5, Math.max(foundingYear + 6, options.year - 2));
       let attempts = 0;
@@ -1434,12 +1429,12 @@ class HistoryModule {
   }
 
   // notable non-ruler individuals: philosophers, inventors, rebel leaders, religious figures...
-private figureEvents(state: State, foundingYear: number): { events: HistoricalEvent[]; figures: NotableFigure[] } {
+  private figureEvents(state: State, foundingYear: number): { events: HistoricalEvent[]; figures: NotableFigure[] } {
     const roles = Object.keys(FIGURE_TEMPLATES) as FigureRole[];
-    
+
     // --- INCREASED DENSITY ---
     // Boost from rand(2, 5) to a much higher dynamic or static ceiling
-    const stateAge = options.year - foundingYear;
+    const _stateAge = options.year - foundingYear;
     const count = rand(12, 32); // Generates a robust cast of historical characters
 
     const values: FigureValues = {
