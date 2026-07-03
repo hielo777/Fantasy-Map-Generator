@@ -138,14 +138,17 @@ function render(): void {
       <svg class="coaIcon" viewBox="0 0 200 200" style="width: 2.4em; height: 2.4em"><use href="#${coaId}"></use></svg>
       <b>${state.fullName || state.name}</b>
     </div>
-    <h4 style="margin: .4em 0">Legendary Era</h4>
-    ${renderEvents(legendary, "No legends survive from before the founding")}
-    <h4 style="margin: .8em 0 .4em">Recorded History</h4>
+    
+    <h4 style="margin: 1.2em 0 .4em; padding-top: .8em; border-top: 1px solid #ddd;">Recorded Histor</h4>
     ${renderEvents(recorded, "No recorded history")}
+    <hr style="border: 0; border-top: 1px solid #ccc; margin: 1.5em 0 .8em;">
     <h4 style="margin: .8em 0 .4em">Rulers</h4>
     ${rulers}
     <h4 style="margin: .8em 0 .4em">Notable Figures</h4>
     ${figures}
+    <hr style="border: 0; border-top: 1px solid #ccc; margin: 1.5em 0 .8em;">
+    <h4 style="margin: 1.2em 0 .4em; padding-top: .8em; border-top: 1px solid #ddd;">Legendary Era</h4>
+    ${renderEvents(legendary, "No legends survive from before the founding")}
   `;
 }
 
