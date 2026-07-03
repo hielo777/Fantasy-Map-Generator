@@ -512,21 +512,19 @@ class HistoryModule {
     return { events, figures };
   }
 
-  // fictional pre-founding era: a predecessor entity that rose, thrived and fell before the current state existed
+// fictional pre-founding era: a predecessor entity that rose, thrived and fell before the current state existed
   private legendaryEvents(state: State, foundingYear: number): HistoricalEvent[] {
     const culture = pack.cultures[state.culture];
     const originId = culture ? culture.origins?.find(o => o !== null && o !== culture.i) : undefined;
     const originCulture = originId == null ? null : pack.cultures[originId];
     const rootCultureName = originCulture?.name || culture?.name || "the peoples of this land";
 
-    //const legendSpan = gauss(250, 100, 80, 500);
     const legendSpan = gauss(7500, 2000, 200, 10500);
     const emergenceYear = foundingYear - legendSpan;
     const capitalName = pack.burgs[state.capital]?.name || state.name;
     const entityName = ra(LEGEND_FORMS).replace("{name}", Names.getCultureShort(originId ?? state.culture));
 
     const backdrop = ra(ANCIENT_ERAS);
-    // const backdropYear = emergenceYear - rand(30, 150);
     const backdropYear = emergenceYear - rand(500, 10000);
 
     const events: HistoricalEvent[] = [
@@ -543,6 +541,42 @@ class HistoryModule {
         text: `Long before ${state.name} took its current form, ${rootCultureName} coalesced into ${entityName}, an early power that first brought order to the region.`
       }
     ];
+
+    // --- NEW: Dynamic Intermediate Milestones ---
+    // Generates 3 to 6 variable internal history events between emergence and downfall
+    const intermediateEventCount = rand(3, 6);
+    const milestoneYears: number[] = [];
+    
+    // Pick unique years distributed through the empire's lifespan
+    while (milestoneYears.length < intermediateEventCount) {
+      const potentialYear = rand(emergenceYear + 50, foundingYear - 500);
+      if (!milestoneYears.includes(potentialYear)) {
+        milestoneYears.push(potentialYear);
+      }
+    }
+    milestoneYears.sort((a, b) => a - b);
+
+    // Pool of randomized ancient event archetypes
+    const milestoneTemplates = [
+      { title: "Imperial Expansion", text: () => `${entityName} pushed its borders to the natural horizons, subjugating surrounding clans and mapping the outer wilderness.` },
+      { title: "Great Monument Raised", text: () => `A grand capital city was constructed by ${entityName}, anchoring its power with monolithic architecture that would outlast its laws.` },
+      { title: "The Sovereign Succession", text: () => `A legendary dynasty took command of ${entityName}, centralizing bureaucratic control and codifying a strict primitive legal system.` },
+      { title: "Era of Enlightenment", text: () => `Scholars under ${entityName} perfected advanced early astronomical systems and agricultural techniques, prompting a massive population boom.` },
+      { title: "The Border Skirmishes", text: () => `Fringe territories of ${entityName} faced relentless incursions from early nomadic migrations, forcing the construction of defensive earthworks.` },
+      { title: "Internal Schism", text: () => `An intellectual and religious schism fractured the ruling elite of ${entityName}, leaving its administrative networks permanently fragile.` }
+    ];
+
+    // Build and push the intermediate history events
+    milestoneYears.forEach(year => {
+      const template = ra(milestoneTemplates);
+      events.push({
+        year,
+        type: "legend",
+        title: template.title,
+        text: template.text()
+      });
+    });
+    // --- END OF NEW GENERATION ---
 
     if (P(0.7)) {
       const peakYear = rand(emergenceYear + 10, emergenceYear + Math.max(20, Math.round(legendSpan * 0.4)));
