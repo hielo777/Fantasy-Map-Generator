@@ -442,7 +442,8 @@ class HistoryModule {
   // whose history text mentions it by name (wars, alliances, vassalage)
   onStateRename(stateId: number): void {
     const state = pack.states[stateId];
-    if (!state || !state.i || state.removed) return;
+    // if (!state || !state.i || state.removed) return;
+    if (!state?.i || state.removed) return;
 
     this.regenerateState(state);
 
@@ -634,7 +635,7 @@ class HistoryModule {
     return events;
   }
 
-private diplomacyEvents(state: State, foundingYear: number): HistoricalEvent[] {
+  private diplomacyEvents(state: State, foundingYear: number): HistoricalEvent[] {
     const diplomacy = state.diplomacy;
     if (!diplomacy) return [];
     const events: HistoricalEvent[] = [];
