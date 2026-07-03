@@ -80,7 +80,7 @@ function populateSelect(): void {
     .forEach(s => {
       select.options.add(new Option(s.fullName || s.name, String(s.i), false, s.i === activeStateId));
     });
-    //.forEach(s => select.options.add(new Option(s.fullName || s.name, String(s.i), false, s.i === activeStateId)));
+  //.forEach(s => select.options.add(new Option(s.fullName || s.name, String(s.i), false, s.i === activeStateId)));
 }
 
 function formatYear(year: number): string {

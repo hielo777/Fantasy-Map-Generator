@@ -525,7 +525,7 @@ class HistoryModule {
     const entityName = ra(LEGEND_FORMS).replace("{name}", Names.getCultureShort(originId ?? state.culture));
 
     const backdrop = ra(ANCIENT_ERAS);
-   // const backdropYear = emergenceYear - rand(30, 150);
+    // const backdropYear = emergenceYear - rand(30, 150);
     const backdropYear = emergenceYear - rand(500, 10000);
 
     const events: HistoricalEvent[] = [
@@ -634,7 +634,7 @@ class HistoryModule {
     return events;
   }
 
-  private diplomacyEvents(state: State, foundingYear: number): HistoricalEvent[] {
+private diplomacyEvents(state: State, foundingYear: number): HistoricalEvent[] {
     const diplomacy = state.diplomacy;
     if (!diplomacy) return [];
     const events: HistoricalEvent[] = [];
@@ -642,7 +642,8 @@ class HistoryModule {
     // diplomacy[i] reads as "this state IS [relation] OF state i"
     const isValid = (i: number) => i > 0 && pack.states[i] && !pack.states[i].removed;
 
-    const allyIndex = diplomacy.findIndex(r => r === "Ally");
+    // Fixed: Changed .findIndex() to .indexOf()
+    const allyIndex = diplomacy.indexOf("Ally");
     if (isValid(allyIndex)) {
       events.push({
         year: rand(foundingYear + 5, options.year),
@@ -652,7 +653,8 @@ class HistoryModule {
       });
     }
 
-    const vassalOfIndex = diplomacy.findIndex(r => r === "Vassal");
+    // Fixed: Changed .findIndex() to .indexOf()
+    const vassalOfIndex = diplomacy.indexOf("Vassal");
     if (isValid(vassalOfIndex)) {
       events.push({
         year: rand(foundingYear + 5, options.year),
@@ -662,7 +664,8 @@ class HistoryModule {
       });
     }
 
-    const suzerainOfIndex = diplomacy.findIndex(r => r === "Suzerain");
+    // Fixed: Changed .findIndex() to .indexOf()
+    const suzerainOfIndex = diplomacy.indexOf("Suzerain");
     if (isValid(suzerainOfIndex)) {
       events.push({
         year: rand(foundingYear + 5, options.year),
