@@ -20,6 +20,7 @@ The canonical "build a world from scratch" routine lives in [`public/main.js`](.
 | 10  | **Settlement & political layer**     | `Burgs.generate`, `States.generate`, `Routes.generate`, `Religions.generate`                                | `pack.burgs`, `pack.states`, `pack.routes`, `pack.religions`        |
 | 11  | **Settlement / state specification** | `Burgs.specify`, `States.collectStatistics`, `States.defineStateForms`                                      | burg types, state stats, state forms                                |
 | 12  | **Provinces**                        | `Provinces.generate`, `Provinces.getPoles`                                                                  | `pack.provinces`                                                    |
+| 12b | **History**                          | `History.generate`                                                                                          | `state.history`, `state.rulers`                                     |
 | 13  | **Naming polish**                    | `Rivers.specify`, `Lakes.defineNames`                                                                       | river/lake names                                                    |
 | 14  | **Economy**                          | `Markets.generate`, `Production.produce`, `States.collectTaxes`                                             | `pack.markets`, `cells.market`, `pack.deals`, `burg.production`, `burg.treasury`, `state.treasury` |
 | 15  | **Military & overlays**              | `Military.generate`, `Markers.generate`, `Zones.generate`                                                   | regiments, markers, zones                                           |
@@ -28,6 +29,7 @@ The canonical "build a world from scratch" routine lives in [`public/main.js`](.
 Two ordering constraints matter for replication:
 
 - **Goods depend on nothing pack-side** but must exist before `Markets.generate`. `Goods.generate` is called once per map and idempotent for an existing `pack.goods`; pass `regenerate=true` only to force a fresh catalogue.
+- **History depends on states, cultures, religions and provinces** — `History.generate` reads `state.campaigns`/`state.diplomacy` (set by `States.generate`), `pack.cultures`, and the dominant religion of each state's capital cell, so it must run after phase 12 and before anything that depends on `state.history`/`state.rulers` existing.
 - **Economy depends on the whole settlement chain** — markets are seeded from burgs, production reads `state.culture`, `state.provinces`, `cells.biome`, `cells.pop`, `cells.market`, `pack.routes`. Replicators that rebuild burgs/states/provinces must also rebuild the economy, or `pack.markets`, `cells.market`, `pack.deals`, `burg.production`, and the treasuries will reference stale or removed entities.
 
 See [`production_schema.md`](production_schema.md) and [`trade_schema.md`](trade_schema.md) for the internal ordering of phase 14.
