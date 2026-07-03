@@ -15,6 +15,7 @@ import {
   rw,
   trimVowels
 } from "../utils";
+import type { HistoricalEvent, Ruler } from "./history-generator";
 import type { Regiment } from "./military-generator";
 
 declare global {
@@ -52,6 +53,8 @@ export interface State {
   salesTax: number;
   pollTax: number;
   treasury: number;
+  history?: HistoricalEvent[];
+  rulers?: Ruler[];
 }
 
 interface Campaign {

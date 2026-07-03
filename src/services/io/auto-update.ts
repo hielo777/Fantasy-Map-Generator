@@ -1187,4 +1187,11 @@ export function resolveVersionConflicts(mapVersion: string): void {
     // v1.132.0 added global 3D view options
     options.threeD = { ...defaultOptions };
   }
+
+  if (isOlderThan("1.135.0")) {
+    // v1.135.0 added state history (founding narrative, ruler dynasty, timeline of events)
+    pack.states.forEach(state => {
+      if (state.i && !state.removed && !state.history?.length) History.generate(true, state.i);
+    });
+  }
 }

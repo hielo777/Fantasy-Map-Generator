@@ -70,6 +70,7 @@ function insertEditorHtml(): HTMLElement {
       <button id="statesEditorRefresh" data-tip="Refresh the Editor" class="icon-cw"></button>
       <button id="statesEditStyle" data-tip="Edit states style in Style Editor" class="icon-adjust"></button>
       <button id="statesLegend" data-tip="Toggle Legend box" class="icon-list-bullet"></button>
+      <button id="statesHistory" data-tip="Show state founding narrative, ruler dynasty and event timeline" class="icon-book"></button>
       <button id="statesPercentage" data-tip="Toggle percentage / absolute values views" class="icon-percent"></button>
       <button id="statesChart" data-tip="Show states bubble chart" class="icon-chart-area"></button>
 
@@ -121,6 +122,10 @@ function addListeners(): void {
   ensureEl("statesEditorRefresh").on("click", refreshStatesEditor);
   ensureEl("statesEditStyle").on("click", () => editStyle("regions"));
   ensureEl("statesLegend").on("click", toggleLegend);
+  ensureEl("statesHistory").on("click", () => {
+    const selected = $body.querySelector<HTMLElement>("div.selected");
+    Controllers.HistoryViewer.open(selected ? Number(selected.dataset.id) : undefined);
+  });
   ensureEl("statesPercentage").on("click", togglePercentageMode);
   ensureEl("statesChart").on("click", showStatesChart);
   ensureEl("statesRegenerate").on("click", openRegenerationMenu);

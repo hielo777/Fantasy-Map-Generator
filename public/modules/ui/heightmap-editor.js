@@ -267,6 +267,8 @@ function editHeightmap(options) {
     Provinces.generate();
     Provinces.getPoles();
 
+    History.generate();
+
     Rivers.specify();
     Lakes.defineNames();
 
