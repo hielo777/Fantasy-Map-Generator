@@ -416,7 +416,10 @@ class HistoryModule {
   private activeGlobalEra: (typeof ANCIENT_ERAS)[number] | null = null;
 
   // NEW: Stores interconnected world events keyed by year so states can pull from them
-  private sharedWorldEvents: Record<number, { title: string; type: HistoricalEventType; descriptions: Record<number, string> }> = {};
+  private sharedWorldEvents: Record<
+    number,
+    { title: string; type: HistoricalEventType; descriptions: Record<number, string> }
+  > = {};
 
   // generate history for all states; pass a stateId to (re)generate a single state only
   generate(regenerate = false, stateId: number | null = null) {
@@ -448,7 +451,7 @@ class HistoryModule {
   private seedSharedWorldEvents(): void {
     // Let's create a dynamic "Continental Plague" year somewhere in the mid-timeline
     const plagueYear = Math.round(options.year - rand(120, 240));
-    
+
     this.sharedWorldEvents[plagueYear] = {
       title: "The Great Contagion",
       type: "disaster",
@@ -644,7 +647,6 @@ class HistoryModule {
     const emergenceYear = foundingYear - legendSpan;
     const capitalName = pack.burgs[state.capital]?.name || state.name;
     const entityName = ra(LEGEND_FORMS).replace("{name}", Names.getCultureShort(originId ?? state.culture));
-
 
     //const backdrop = ra(ANCIENT_ERAS);
     // --- UPDATED: Using the Global Anchor ---
@@ -1298,19 +1300,22 @@ class HistoryModule {
       // --- NEW: Global Era Adaptive Logic ---
       // If the global anchor matches specific catastrophic eras, force a high chance of thematic events
       if (backdrop.prefix === "The Frozen Century" && P(0.4)) {
-        template = { 
-          title: "The Frost Bite", 
-          text: () => `As glaciers pushed down from the north during ${backdrop.prefix}, ${entityName} was forced to completely abandon its northernmost crop networks.` 
+        template = {
+          title: "The Frost Bite",
+          text: () =>
+            `As glaciers pushed down from the north during ${backdrop.prefix}, ${entityName} was forced to completely abandon its northernmost crop networks.`
         };
       } else if (backdrop.prefix === "The Great Inundation" && P(0.4)) {
-        template = { 
-          title: "The Rising Tides", 
-          text: () => `Unprecedented sea level rises from ${backdrop.prefix} compromised the low-lying administrative structures of ${entityName}.` 
+        template = {
+          title: "The Rising Tides",
+          text: () =>
+            `Unprecedented sea level rises from ${backdrop.prefix} compromised the low-lying administrative structures of ${entityName}.`
         };
       } else if (backdrop.prefix === "The Magister's Fall" && P(0.4)) {
-        template = { 
-          title: "Echoes of the Spire", 
-          text: () => `Debris and fallout from the collapsing sky-structures of the old magisters disrupted basic resource distribution across ${entityName}.` 
+        template = {
+          title: "Echoes of the Spire",
+          text: () =>
+            `Debris and fallout from the collapsing sky-structures of the old magisters disrupted basic resource distribution across ${entityName}.`
         };
       }
 
@@ -1384,7 +1389,7 @@ class HistoryModule {
     return rulers;
   }
 
-private warEvents(state: State, foundingYear: number): HistoricalEvent[] {
+  private warEvents(state: State, foundingYear: number): HistoricalEvent[] {
     const events: HistoricalEvent[] = [];
 
     (state.campaigns || []).forEach(campaign => {
@@ -1413,7 +1418,9 @@ private warEvents(state: State, foundingYear: number): HistoricalEvent[] {
         year: startYear,
         type: "war",
         title: campaign.name,
-        text: this.sharedWorldEvents[startYear].descriptions[state.i] || `The ${campaign.name} broke out between ${attacker.name} and ${defender.name}.`
+        text:
+          this.sharedWorldEvents[startYear].descriptions[state.i] ||
+          `The ${campaign.name} broke out between ${attacker.name} and ${defender.name}.`
       });
 
       // Handle the synchronized end text
@@ -1423,15 +1430,15 @@ private warEvents(state: State, foundingYear: number): HistoricalEvent[] {
 
         if (!this.sharedWorldEvents[endKey]) {
           // Systemically decide a winner based on a quick procedural check or random chance
-          const attackerWon = P(0.5); 
+          const attackerWon = P(0.5);
           this.sharedWorldEvents[endKey] = {
             title: `End of the ${campaign.name}`,
             type: "peace",
             descriptions: {
-              [campaign.attacker]: attackerWon 
+              [campaign.attacker]: attackerWon
                 ? `Fighting in the ${campaign.name} concluded after ${years} year${years === 1 ? "" : "s"}. Banners of victory were raised in our capital as ${defender.name} ceded core territories.`
                 : `The ${campaign.name} ground to a halt after ${years} year${years === 1 ? "" : "s"}. Our forced retreat sparked political instability within the high court.`,
-              [campaign.defender]: attackerWon 
+              [campaign.defender]: attackerWon
                 ? `The tragic ${campaign.name} came to an end after ${years} year${years === 1 ? "" : "s"}. Beaten back by sheer numbers, our diplomats signed a humiliating peace treaty with ${attacker.name}.`
                 : `Fighting in the ${campaign.name} ended after ${years} bitter year${years === 1 ? "" : "s"}. Our garrison successfully stood its ground, forcing the retreating armies of ${attacker.name} to sign a status quo peace.`
             }
@@ -1442,14 +1449,15 @@ private warEvents(state: State, foundingYear: number): HistoricalEvent[] {
           year: endYear,
           type: "peace",
           title: `End of the ${campaign.name}`,
-          text: this.sharedWorldEvents[endKey].descriptions[state.i] || `Fighting in the ${campaign.name} came to an end after ${years} year${years === 1 ? "" : "s"}.`
+          text:
+            this.sharedWorldEvents[endKey].descriptions[state.i] ||
+            `Fighting in the ${campaign.name} came to an end after ${years} year${years === 1 ? "" : "s"}.`
         });
       }
     });
 
     return events;
   }
-  
 
   private diplomacyEvents(state: State, foundingYear: number): HistoricalEvent[] {
     const diplomacy = state.diplomacy;
@@ -1508,9 +1516,10 @@ private warEvents(state: State, foundingYear: number): HistoricalEvent[] {
       if (globalYear > 10000 || globalYear < foundingYear + 5 || globalYear >= options.year) return;
 
       const globalEvent = this.sharedWorldEvents[globalYear];
-      
+
       if (globalEvent.title === "The Great Contagion") {
-        globalEvent.descriptions[state.i] = `The Great Contagion swept across our borders from neighboring provinces, forcing the capital to completely seal its trade ports.`;
+        globalEvent.descriptions[state.i] =
+          `The Great Contagion swept across our borders from neighboring provinces, forcing the capital to completely seal its trade ports.`;
         events.push({
           year: globalYear,
           type: globalEvent.type,
@@ -1518,7 +1527,8 @@ private warEvents(state: State, foundingYear: number): HistoricalEvent[] {
           text: globalEvent.descriptions[state.i]
         });
       } else if (globalEvent.title === "The Great Currency Crash") {
-        globalEvent.descriptions[state.i] = `The continent-wide devaluation of currencies hit ${state.name} hard, sparking immense market panic and civil worker strikes.`;
+        globalEvent.descriptions[state.i] =
+          `The continent-wide devaluation of currencies hit ${state.name} hard, sparking immense market panic and civil worker strikes.`;
         events.push({
           year: globalYear,
           type: globalEvent.type,
