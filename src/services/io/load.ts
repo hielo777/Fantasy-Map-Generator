@@ -471,6 +471,10 @@ async function parseLoadedData(data: string[], mapVersion: string | null): Promi
       if (goodIconsDefs) goodIconsDefs.insertAdjacentHTML("beforeend", data[45]);
     }
 
+    // data[46]: world-level history coordination (shared mythic era, cross-state war/disaster outcomes);
+    // absent in saves made before this was added, or if the map was saved before any history was generated
+    pack.history = (data[46] && JSON.parse(data[46])) || undefined;
+
     {
       const isVisible = (selection: { node(): Element | null; style(name: string): string }) =>
         selection.node() && selection.style("display") !== "none";

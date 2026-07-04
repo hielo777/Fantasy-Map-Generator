@@ -63,6 +63,27 @@ interface FigureValues {
   campaign?: string;
 }
 
+export interface AncientEra {
+  prefix: string;
+  text: string;
+}
+
+// a world-level event (e.g. a war, a plague) whose outcome/description must stay
+// consistent across every state it touches; keyed by year, with one text per involved state
+export interface SharedWorldEvent {
+  title: string;
+  type: HistoricalEventType;
+  descriptions: Record<number, string>;
+}
+
+// world-level history coordination data; this is persisted on pack.history (not on the
+// HistoryModule instance) specifically so it survives save/export and load/import, and so
+// two states that share an event keep telling the same story after either is regenerated
+export interface WorldHistory {
+  activeGlobalEra: AncientEra | null;
+  sharedWorldEvents: Record<number, SharedWorldEvent>;
+}
+
 // epithet -> what they are remembered for, used both for ruler naming and event text
 const EPITHETS: Record<string, string> = {
   "the Great": "expanded the realm's borders and is remembered as a unifying force",
@@ -171,7 +192,7 @@ const LEGEND_DOWNFALLS: Record<string, (entity: string) => string> = {
 };
 
 // broad mythic backdrop epochs that precede the specific predecessor entity, for extra flavor variety
-const ANCIENT_ERAS: { prefix: string; text: string }[] = [
+const ANCIENT_ERAS: AncientEra[] = [
   {
     prefix: "The Age of Dawn",
     text: "Before the current borders took form, the land was a wild sprawl of primal tribes and untamed mystical forces."
@@ -412,28 +433,44 @@ const FIGURE_TEMPLATES: Record<FigureRole, string[]> = {
 };
 
 class HistoryModule {
-  // NEW: Stores the shared mythic backdrop for the current world map generation
-  private activeGlobalEra: (typeof ANCIENT_ERAS)[number] | null = null;
+  // Backed by pack.history (not a plain instance field) so this survives export/import — see WorldHistory.
+  // All existing call sites (this.activeGlobalEra, this.sharedWorldEvents[...] = ...) keep working unchanged,
+  // since the getters return the live object stored on pack.history rather than a copy.
+  private ensureWorldHistory(): WorldHistory {
+    pack.history ??= { activeGlobalEra: null, sharedWorldEvents: {} };
+    return pack.history;
+  }
 
-  // NEW: Stores interconnected world events keyed by year so states can pull from them
-  private sharedWorldEvents: Record<
-    number,
-    { title: string; type: HistoricalEventType; descriptions: Record<number, string> }
-  > = {};
-  
+  private get activeGlobalEra(): AncientEra | null {
+    return pack.history?.activeGlobalEra ?? null;
+  }
+
+  private set activeGlobalEra(value: AncientEra | null) {
+    this.ensureWorldHistory().activeGlobalEra = value;
+  }
+
+  private get sharedWorldEvents(): Record<number, SharedWorldEvent> {
+    return this.ensureWorldHistory().sharedWorldEvents;
+  }
+
+  private set sharedWorldEvents(value: Record<number, SharedWorldEvent>) {
+    this.ensureWorldHistory().sharedWorldEvents = value;
+  }
 
   // generate history for all states; pass a stateId to (re)generate a single state only
   generate(regenerate = false, stateId: number | null = null) {
     TIME && console.time("generateHistory");
 
-    // NEW: Establish the global era anchor before iterating through individual states
-    if (regenerate || !this.activeGlobalEra) {
+    // only a full-map (re)generation is allowed to reroll the shared global era/events — regenerating a
+    // single state must reuse whatever every other state's (possibly already-saved) history depends on
+    const isFullRun = stateId === null;
+
+    if (!this.activeGlobalEra || (isFullRun && regenerate)) {
       this.activeGlobalEra = ra(ANCIENT_ERAS);
-      this.sharedWorldEvents = {}; // Reset global events on fresh map generation
     }
 
-    // --- NEW: Seed Cross-State Global Events ---
-    if (regenerate || Object.keys(this.sharedWorldEvents).length === 0) {
+    if (Object.keys(this.sharedWorldEvents).length === 0 || (isFullRun && regenerate)) {
+      this.sharedWorldEvents = {};
       this.seedSharedWorldEvents();
     }
 
@@ -589,137 +626,50 @@ class HistoryModule {
 
   */
 
-  // private buildTimeline(
-  //   state: State,
-  //   foundingYear: number,
-  //   rulers: Ruler[]
-  // ): { events: HistoricalEvent[]; figures: NotableFigure[] } {
-  //   // 1. Generate the event buckets
-  //   const recordedEvents: HistoricalEvent[] = [
-  //     ...this.warEvents(state, foundingYear),
-  //     ...this.diplomacyEvents(state, foundingYear),
-  //     ...this.flavorEvents(state, foundingYear)
-  //   ];
-
-  //   const rulerEvents: HistoricalEvent[] = rulers
-  //     .filter(r => r.notable)
-  //     .map(ruler => ({
-  //       year: ruler.start,
-  //       type: "ruler",
-  //       title: `${ruler.name} ${ruler.notable}`,
-  //       text: `${ruler.name} ${ruler.notable} took the throne of ${state.name} and ${EPITHETS[ruler.notable!].replace("and ", "")}.`
-  //     }));
-
-  //   const { events: figureEvents, figures } = this.figureEvents(state, foundingYear);
-
-  //   const legendaryEvents: HistoricalEvent[] = [
-  //     ...this.legendaryEvents(state, foundingYear),
-  //     this.foundingEvent(state, foundingYear)
-  //   ];
-
-  //   // 2. Sort each bucket descending (Recent -> Ancient)
-  //   const sortDescending = (a: HistoricalEvent, b: HistoricalEvent) => b.year - a.year;
-
-  //   recordedEvents.sort(sortDescending);
-  //   rulerEvents.sort(sortDescending);
-  //   figureEvents.sort(sortDescending);
-  //   legendaryEvents.sort(sortDescending);
-
-  //   // 3. Combine in your requested order
-  //   // Recorded -> Rulers/Individuals -> Legendary
-  //   const events = [...recordedEvents, ...rulerEvents, ...figureEvents, ...legendaryEvents];
-
-  //   // Final sorting for state.figures remains chronological (as requested by typical generator logic)
-  //   // but the history array now reflects your custom order
-  //   state.figures = figures.sort((a, b) => b.year - a.year);
-  //   state.history = events;
-
-  //   return { events, figures };
-  // }
-
   private buildTimeline(
     state: State,
     foundingYear: number,
     rulers: Ruler[]
   ): { events: HistoricalEvent[]; figures: NotableFigure[] } {
-    // 1. Gather all baseline operational events first
+    // 1. Generate the event buckets
     const recordedEvents: HistoricalEvent[] = [
       ...this.warEvents(state, foundingYear),
       ...this.diplomacyEvents(state, foundingYear),
       ...this.flavorEvents(state, foundingYear)
     ];
 
+    const rulerEvents: HistoricalEvent[] = rulers
+      .filter(r => r.notable)
+      .map(ruler => ({
+        year: ruler.start,
+        type: "ruler",
+        title: `${ruler.name} ${ruler.notable}`,
+        text: `${ruler.name} ${ruler.notable} took the throne of ${state.name} and ${EPITHETS[ruler.notable!].replace("and ", "")}.`
+      }));
+
     const { events: figureEvents, figures } = this.figureEvents(state, foundingYear);
-    
+
     const legendaryEvents: HistoricalEvent[] = [
       ...this.legendaryEvents(state, foundingYear),
       this.foundingEvent(state, foundingYear)
     ];
 
-    // 2. Dynamic Epithet Generation Pass
-    const rulerEvents: HistoricalEvent[] = [];
-
-    rulers.forEach(ruler => {
-      // Look at all events that occurred while this specific ruler held the throne
-      const reignEvents = this.getEventsInWindow(recordedEvents, ruler.start, ruler.end);
-      
-      const warCount = reignEvents.filter(e => e.type === "war").length;
-      const peaceCount = reignEvents.filter(e => e.type === "peace").length;
-      const disasterCount = reignEvents.filter(e => e.type === "disaster").length;
-      const goldenAgeCount = reignEvents.filter(e => e.type === "golden-age").length;
-
-      // Systemic Evaluation Logic: Assign title based on historical data
-      let dynamicEpithet = "";
-      let legacySnippet = "maintained the realm";
-
-      if (warCount >= 2) {
-        dynamicEpithet = "the Bold";
-        legacySnippet = "led the nation through periods of intense military mobilization";
-      } else if (peaceCount >= 2 || goldenAgeCount >= 1) {
-        dynamicEpithet = "the Wise";
-        legacySnippet = "ushered in an epoch of unprecedented prosperity and domestic harmony";
-      } else if (disasterCount >= 1) {
-        dynamicEpithet = "the Ill-Fated";
-        legacySnippet = "struggled to maintain authority amidst structural crises and hardship";
-      } else if (ruler.end - ruler.start > 40) {
-        dynamicEpithet = "the Ancient";
-        legacySnippet = "oversaw a generation of absolute institutional continuity";
-      } else {
-        // Fallback to standard baseline if their reign was quiet
-        dynamicEpithet = ruler.gender === "female" ? "the Just" : "the Fair";
-        legacySnippet = "ruled the kingdom with steady execution of standard decrees";
-      }
-
-      // Mutate the actual ruler object so the UI and global trackers reflect their earned title!
-      ruler.notable = dynamicEpithet;
-
-      // 3. Inject Coronation Event built from their dynamic achievements
-      rulerEvents.push({
-        year: ruler.start,
-        type: "ruler",
-        title: `${ruler.name} ${ruler.notable}`,
-        text: `${ruler.name} ${ruler.notable} assumed control of ${state.fullName || state.name}, an administration that subsequently ${legacySnippet}.`
-      });
-    });
-
-    // 3. Sort each bucket descending (Recent -> Ancient) as configured previously
+    // 2. Sort each bucket descending (Recent -> Ancient)
     const sortDescending = (a: HistoricalEvent, b: HistoricalEvent) => b.year - a.year;
-    
+
     recordedEvents.sort(sortDescending);
     rulerEvents.sort(sortDescending);
     figureEvents.sort(sortDescending);
     legendaryEvents.sort(sortDescending);
 
-    // 4. Combine in requested hierarchy order
-    const events = [
-      ...recordedEvents,
-      ...rulerEvents,
-      ...figureEvents,
-      ...legendaryEvents
-    ];
+    // 3. Combine in your requested order
+    // Recorded -> Rulers/Individuals -> Legendary
+    const events = [...recordedEvents, ...rulerEvents, ...figureEvents, ...legendaryEvents];
 
-    state.figures = figures.sort((a, b) => a.year - b.year);
-    state.history = events; 
+    // Final sorting for state.figures remains chronological (as requested by typical generator logic)
+    // but the history array now reflects your custom order
+    state.figures = figures.sort((a, b) => b.year - a.year);
+    state.history = events;
 
     return { events, figures };
   }
@@ -1692,11 +1642,6 @@ class HistoryModule {
     const joiner = role === "Commoner" ? ", " : " ";
     return `${name}${joiner}${template}`;
   }
-
-  private getEventsInWindow(events: HistoricalEvent[], start: number, end: number): HistoricalEvent[] {
-    return events.filter(e => e.year >= start && e.year <= end);
-  }
-
 }
 
 window.History = new HistoryModule();

@@ -112,6 +112,7 @@ function prepareMapData(): string {
   const goods = JSON.stringify(pack.goods);
   const markets = JSON.stringify(pack.markets || []);
   const deals = JSON.stringify(pack.deals || []);
+  const worldHistory = JSON.stringify(pack.history || null);
 
   // store custom good icons
   const goodIconsEl = ensureEl("good-icons");
@@ -179,7 +180,8 @@ function prepareMapData(): string {
     markets,
     deals,
     pack.cells.market,
-    customGoodIcons
+    customGoodIcons,
+    worldHistory
   ].join("\r\n");
   return mapData;
 }

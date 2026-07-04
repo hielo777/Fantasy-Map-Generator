@@ -185,7 +185,8 @@ function renderEvents(events: HistoricalEvent[], emptyText: string, currentState
           event.text.includes("century") ||
           event.text.includes("inundation"));
 
-      if (isGlobalEraAnchor) { //Shared World Events. These events are not tied to a specific state but rather provide a global historical context. They are visually distinguished with a dashed border and a globe icon.
+      if (isGlobalEraAnchor) {
+        //Shared World Events. These events are not tied to a specific state but rather provide a global historical context. They are visually distinguished with a dashed border and a globe icon.
         return /* html */ `
           <div class="historyEvent globalEraAnchor" style="background: rgba(74, 144, 226, 0.08); border: 2px dashed ${EVENT_COLORS.global}; border-radius: 6px; padding: .8em; margin: .8em 0; box-shadow: inset 0 0 10px rgba(0,0,0,0.05)">
             <div style="font-weight: bold; color: ${EVENT_COLORS.global}; font-size: 1.1em; display: flex; align-items: center; gap: .4em;">

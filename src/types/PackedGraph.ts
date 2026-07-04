@@ -2,6 +2,7 @@ import type { Burg } from "@/generators/burgs-generator";
 import type { Culture } from "@/generators/cultures-generator";
 import type { Feature } from "@/generators/features";
 import type { Good } from "@/generators/goods-generator";
+import type { WorldHistory } from "@/generators/history-generator";
 import type { Ice } from "@/generators/ice-generator";
 import type { Marker } from "@/generators/markers-generator";
 import type { Deal, Market } from "@/generators/markets-generator";
@@ -65,4 +66,7 @@ export interface PackedGraph {
   goods: Good[];
   markets: Market[];
   deals: Deal[];
+  // world-level history coordination (shared mythic era, cross-state war/disaster outcomes);
+  // optional because old saves and pre-generation packs won't have it yet
+  history?: WorldHistory;
 }
