@@ -70,7 +70,7 @@ function open(stateId?: number): void {
     ensureEl("historyViewerExport").on("click", downloadHistory);
     isInitialized = true;
 
-    //Wire up the Global Click Interceptor. 
+    //Wire up the Global Click Interceptor.
     if (!window.hasHistoryStateListener) {
       window.addEventListener("switchHistoryState", (e: any) => {
         const nextStateId = e.detail;
@@ -177,16 +177,19 @@ function renderEvents(events: HistoricalEvent[], emptyText: string, currentState
       // 1. Detect if this is the foundational "Global Backdrop Anchor"
       //const isGlobalEraAnchor = event.type === "legend" && ANCIENT_ERAS.some(era => era.prefix === event.title);
       // shadow-check if it's the global template based on its structural text characteristics
-      const isGlobalEraAnchor = event.type === "legend" && (
-        event.title.startsWith("The ") && 
-        (event.text.includes("era") || event.text.includes("age") || event.text.includes("century") || event.text.includes("inundation"))
-      );
-      
-      if (isGlobalEraAnchor) {
+      const isGlobalEraAnchor =
+        event.type === "legend" &&
+        event.title.startsWith("The ") &&
+        (event.text.includes("era") ||
+          event.text.includes("age") ||
+          event.text.includes("century") ||
+          event.text.includes("inundation"));
+
+      if (isGlobalEraAnchor) { //Shared World Events. These events are not tied to a specific state but rather provide a global historical context. They are visually distinguished with a dashed border and a globe icon.
         return /* html */ `
           <div class="historyEvent globalEraAnchor" style="background: rgba(74, 144, 226, 0.08); border: 2px dashed ${EVENT_COLORS.global}; border-radius: 6px; padding: .8em; margin: .8em 0; box-shadow: inset 0 0 10px rgba(0,0,0,0.05)">
             <div style="font-weight: bold; color: ${EVENT_COLORS.global}; font-size: 1.1em; display: flex; align-items: center; gap: .4em;">
-              <span class="icon-globe"></span> ${formatYear(event.year)} — SHARED WORLD ANCHOR: ${event.title}
+              <span class="icon-globe"></span> ${formatYear(event.year)} — WORLD EVENT: ${event.title}
             </div>
             <div style="font-style: italic; margin-top: .4em; opacity: .95; line-height: 1.4;">${event.text}</div>
           </div>`;
@@ -195,15 +198,22 @@ function renderEvents(events: HistoricalEvent[], emptyText: string, currentState
       // 2. Cross-State Scanning Mechanism
       // Look for references to other states to generate badge shortcuts
       const mentionedBadges = activeStates
-        .filter(s => s.i !== currentStateId && (event.text.includes(s.name) || (s.fullName && event.text.includes(s.fullName))))
-        .map(s => /* html */ `
+        .filter(
+          s =>
+            s.i !== currentStateId && (event.text.includes(s.name) || (s.fullName && event.text.includes(s.fullName)))
+        )
+        .map(
+          s => /* html */ `
           <span class="state-link-badge" data-id="${s.i}" style="background: rgba(0,0,0,0.06); border: 1px solid #ccc; padding: 1px 6px; border-radius: 4px; font-size: .8em; cursor: pointer; font-weight: 500;" onclick="window.dispatchEvent(new CustomEvent('switchHistoryState', {detail: ${s.i}}))">
             🔀 ${s.name}
           </span>`
-        ).join(" ");
+        )
+        .join(" ");
 
       const isCrossState = mentionedBadges.length > 0;
-      const borderStyle = isCrossState ? `border-left: 4px double #e74c3c; background: rgba(231, 76, 60, 0.02);` : `border-left: 3px solid ${EVENT_COLORS[event.type] || "#999"};`;
+      const borderStyle = isCrossState
+        ? `border-left: 4px double #e74c3c; background: rgba(231, 76, 60, 0.02);`
+        : `border-left: 3px solid ${EVENT_COLORS[event.type] || "#999"};`;
 
       return /* html */ `
         <div class="historyEvent" data-type="${event.type}" style="${borderStyle} padding: .3em 0 .3em .6em; margin: .45em 0; border-radius: 0 4px 4px 0;">
@@ -230,12 +240,24 @@ function render(): void {
   const legendary = history.filter(event => event.type === "legend");
   const recorded = history.filter(event => event.type !== "legend");
 
+  // const rulers =
+  //   (state.rulers || [])
+  //     .map(
+  //       ruler => /* html */ `<div class="historyRuler" style="padding: .2em 0;">
+  //         <b>${ruler.name}${ruler.notable ? ` ${ruler.notable}` : ""}</b>
+  //         &nbsp;<span style="opacity: .8">(${formatYear(ruler.start)} – ${ruler.end >= options.year ? "present" : formatYear(ruler.end)})</span>
+  //       </div>`
+  //     )
+  //     .join("") || "<div>No recorded rulers</div>";
+
+  // In history-viewer.ts -> function render()[cite: 2]
   const rulers =
     (state.rulers || [])
       .map(
-        ruler => /* html */ `<div class="historyRuler" style="padding: .2em 0;">
-          <b>${ruler.name}${ruler.notable ? ` ${ruler.notable}` : ""}</b>
-          &nbsp;<span style="opacity: .8">(${formatYear(ruler.start)} – ${ruler.end >= options.year ? "present" : formatYear(ruler.end)})</span>
+        ruler => /* html */ `<div class="historyRuler" style="padding: .25em 0; border-bottom: 1px dashed rgba(0,0,0,0.05);">
+          <b>${ruler.name}</b> 
+          ${ruler.notable ? `<span style="color: ${EVENT_COLORS.ruler}; font-weight: bold; font-style: italic;">${ruler.notable}</span>` : ""}
+          &nbsp;<span style="opacity: .8; font-size: .9em;">(${formatYear(ruler.start)} – ${ruler.end >= options.year ? "present" : formatYear(ruler.end)})</span>
         </div>`
       )
       .join("") || "<div>No recorded rulers</div>";

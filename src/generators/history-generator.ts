@@ -420,6 +420,7 @@ class HistoryModule {
     number,
     { title: string; type: HistoricalEventType; descriptions: Record<number, string> }
   > = {};
+  
 
   // generate history for all states; pass a stateId to (re)generate a single state only
   generate(regenerate = false, stateId: number | null = null) {
@@ -588,50 +589,137 @@ class HistoryModule {
 
   */
 
+  // private buildTimeline(
+  //   state: State,
+  //   foundingYear: number,
+  //   rulers: Ruler[]
+  // ): { events: HistoricalEvent[]; figures: NotableFigure[] } {
+  //   // 1. Generate the event buckets
+  //   const recordedEvents: HistoricalEvent[] = [
+  //     ...this.warEvents(state, foundingYear),
+  //     ...this.diplomacyEvents(state, foundingYear),
+  //     ...this.flavorEvents(state, foundingYear)
+  //   ];
+
+  //   const rulerEvents: HistoricalEvent[] = rulers
+  //     .filter(r => r.notable)
+  //     .map(ruler => ({
+  //       year: ruler.start,
+  //       type: "ruler",
+  //       title: `${ruler.name} ${ruler.notable}`,
+  //       text: `${ruler.name} ${ruler.notable} took the throne of ${state.name} and ${EPITHETS[ruler.notable!].replace("and ", "")}.`
+  //     }));
+
+  //   const { events: figureEvents, figures } = this.figureEvents(state, foundingYear);
+
+  //   const legendaryEvents: HistoricalEvent[] = [
+  //     ...this.legendaryEvents(state, foundingYear),
+  //     this.foundingEvent(state, foundingYear)
+  //   ];
+
+  //   // 2. Sort each bucket descending (Recent -> Ancient)
+  //   const sortDescending = (a: HistoricalEvent, b: HistoricalEvent) => b.year - a.year;
+
+  //   recordedEvents.sort(sortDescending);
+  //   rulerEvents.sort(sortDescending);
+  //   figureEvents.sort(sortDescending);
+  //   legendaryEvents.sort(sortDescending);
+
+  //   // 3. Combine in your requested order
+  //   // Recorded -> Rulers/Individuals -> Legendary
+  //   const events = [...recordedEvents, ...rulerEvents, ...figureEvents, ...legendaryEvents];
+
+  //   // Final sorting for state.figures remains chronological (as requested by typical generator logic)
+  //   // but the history array now reflects your custom order
+  //   state.figures = figures.sort((a, b) => b.year - a.year);
+  //   state.history = events;
+
+  //   return { events, figures };
+  // }
+
   private buildTimeline(
     state: State,
     foundingYear: number,
     rulers: Ruler[]
   ): { events: HistoricalEvent[]; figures: NotableFigure[] } {
-    // 1. Generate the event buckets
+    // 1. Gather all baseline operational events first
     const recordedEvents: HistoricalEvent[] = [
       ...this.warEvents(state, foundingYear),
       ...this.diplomacyEvents(state, foundingYear),
       ...this.flavorEvents(state, foundingYear)
     ];
 
-    const rulerEvents: HistoricalEvent[] = rulers
-      .filter(r => r.notable)
-      .map(ruler => ({
-        year: ruler.start,
-        type: "ruler",
-        title: `${ruler.name} ${ruler.notable}`,
-        text: `${ruler.name} ${ruler.notable} took the throne of ${state.name} and ${EPITHETS[ruler.notable!].replace("and ", "")}.`
-      }));
-
     const { events: figureEvents, figures } = this.figureEvents(state, foundingYear);
-
+    
     const legendaryEvents: HistoricalEvent[] = [
       ...this.legendaryEvents(state, foundingYear),
       this.foundingEvent(state, foundingYear)
     ];
 
-    // 2. Sort each bucket descending (Recent -> Ancient)
-    const sortDescending = (a: HistoricalEvent, b: HistoricalEvent) => b.year - a.year;
+    // 2. Dynamic Epithet Generation Pass
+    const rulerEvents: HistoricalEvent[] = [];
 
+    rulers.forEach(ruler => {
+      // Look at all events that occurred while this specific ruler held the throne
+      const reignEvents = this.getEventsInWindow(recordedEvents, ruler.start, ruler.end);
+      
+      const warCount = reignEvents.filter(e => e.type === "war").length;
+      const peaceCount = reignEvents.filter(e => e.type === "peace").length;
+      const disasterCount = reignEvents.filter(e => e.type === "disaster").length;
+      const goldenAgeCount = reignEvents.filter(e => e.type === "golden-age").length;
+
+      // Systemic Evaluation Logic: Assign title based on historical data
+      let dynamicEpithet = "";
+      let legacySnippet = "maintained the realm";
+
+      if (warCount >= 2) {
+        dynamicEpithet = "the Bold";
+        legacySnippet = "led the nation through periods of intense military mobilization";
+      } else if (peaceCount >= 2 || goldenAgeCount >= 1) {
+        dynamicEpithet = "the Wise";
+        legacySnippet = "ushered in an epoch of unprecedented prosperity and domestic harmony";
+      } else if (disasterCount >= 1) {
+        dynamicEpithet = "the Ill-Fated";
+        legacySnippet = "struggled to maintain authority amidst structural crises and hardship";
+      } else if (ruler.end - ruler.start > 40) {
+        dynamicEpithet = "the Ancient";
+        legacySnippet = "oversaw a generation of absolute institutional continuity";
+      } else {
+        // Fallback to standard baseline if their reign was quiet
+        dynamicEpithet = ruler.gender === "female" ? "the Just" : "the Fair";
+        legacySnippet = "ruled the kingdom with steady execution of standard decrees";
+      }
+
+      // Mutate the actual ruler object so the UI and global trackers reflect their earned title!
+      ruler.notable = dynamicEpithet;
+
+      // 3. Inject Coronation Event built from their dynamic achievements
+      rulerEvents.push({
+        year: ruler.start,
+        type: "ruler",
+        title: `${ruler.name} ${ruler.notable}`,
+        text: `${ruler.name} ${ruler.notable} assumed control of ${state.fullName || state.name}, an administration that subsequently ${legacySnippet}.`
+      });
+    });
+
+    // 3. Sort each bucket descending (Recent -> Ancient) as configured previously
+    const sortDescending = (a: HistoricalEvent, b: HistoricalEvent) => b.year - a.year;
+    
     recordedEvents.sort(sortDescending);
     rulerEvents.sort(sortDescending);
     figureEvents.sort(sortDescending);
     legendaryEvents.sort(sortDescending);
 
-    // 3. Combine in your requested order
-    // Recorded -> Rulers/Individuals -> Legendary
-    const events = [...recordedEvents, ...rulerEvents, ...figureEvents, ...legendaryEvents];
+    // 4. Combine in requested hierarchy order
+    const events = [
+      ...recordedEvents,
+      ...rulerEvents,
+      ...figureEvents,
+      ...legendaryEvents
+    ];
 
-    // Final sorting for state.figures remains chronological (as requested by typical generator logic)
-    // but the history array now reflects your custom order
-    state.figures = figures.sort((a, b) => b.year - a.year);
-    state.history = events;
+    state.figures = figures.sort((a, b) => a.year - b.year);
+    state.history = events; 
 
     return { events, figures };
   }
@@ -1604,6 +1692,11 @@ class HistoryModule {
     const joiner = role === "Commoner" ? ", " : " ";
     return `${name}${joiner}${template}`;
   }
+
+  private getEventsInWindow(events: HistoricalEvent[], start: number, end: number): HistoricalEvent[] {
+    return events.filter(e => e.year >= start && e.year <= end);
+  }
+
 }
 
 window.History = new HistoryModule();
