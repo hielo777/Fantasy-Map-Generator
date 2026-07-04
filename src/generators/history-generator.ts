@@ -413,7 +413,10 @@ const FIGURE_TEMPLATES: Record<FigureRole, string[]> = {
 
 class HistoryModule {
   // NEW: Stores the shared mythic backdrop for the current world map generation
-  private activeGlobalEra: typeof ANCIENT_ERAS[number] | null = null;
+  private activeGlobalEra: (typeof ANCIENT_ERAS)[number] | null = null;
+
+  // NEW: Stores interconnected world events keyed by year so states can pull from them
+  private sharedWorldEvents: Record<number, { title: string; type: HistoricalEventType; descriptions: Record<number, string> }> = {};
 
   // generate history for all states; pass a stateId to (re)generate a single state only
   generate(regenerate = false, stateId: number | null = null) {
@@ -422,6 +425,12 @@ class HistoryModule {
     // NEW: Establish the global era anchor before iterating through individual states
     if (regenerate || !this.activeGlobalEra) {
       this.activeGlobalEra = ra(ANCIENT_ERAS);
+      this.sharedWorldEvents = {}; // Reset global events on fresh map generation
+    }
+
+    // --- NEW: Seed Cross-State Global Events ---
+    if (regenerate || Object.keys(this.sharedWorldEvents).length === 0) {
+      this.seedSharedWorldEvents();
     }
 
     pack.states.forEach(state => {
@@ -433,6 +442,26 @@ class HistoryModule {
     });
 
     TIME && console.timeEnd("generateHistory");
+  }
+
+  // Generates massive global macro-events that any active state can hook into
+  private seedSharedWorldEvents(): void {
+    // Let's create a dynamic "Continental Plague" year somewhere in the mid-timeline
+    const plagueYear = Math.round(options.year - rand(120, 240));
+    
+    this.sharedWorldEvents[plagueYear] = {
+      title: "The Great Contagion",
+      type: "disaster",
+      descriptions: {} // Filled dynamically on demand by affected states
+    };
+
+    // Let's create a unified "Global Silver Crash" (Economic Collapse)
+    const crashYear = Math.round(options.year - rand(40, 90));
+    this.sharedWorldEvents[crashYear] = {
+      title: "The Great Currency Crash",
+      type: "disaster",
+      descriptions: {}
+    };
   }
 
   // recompute founding year, dynasty, timeline and figures for a single, already-validated state
@@ -616,7 +645,11 @@ class HistoryModule {
     const capitalName = pack.burgs[state.capital]?.name || state.name;
     const entityName = ra(LEGEND_FORMS).replace("{name}", Names.getCultureShort(originId ?? state.culture));
 
-    const backdrop = ra(ANCIENT_ERAS);
+
+    //const backdrop = ra(ANCIENT_ERAS);
+    // --- UPDATED: Using the Global Anchor ---
+    // Fallback to a random selection only if the generation is executed out of band
+    const backdrop = this.activeGlobalEra || ra(ANCIENT_ERAS);
     const backdropYear = emergenceYear - rand(500, 10000);
 
     const events: HistoricalEvent[] = [
@@ -1260,7 +1293,27 @@ class HistoryModule {
 
     // Build and push the intermediate history events
     milestoneYears.forEach(year => {
-      const template = ra(milestoneTemplates);
+      let template = ra(milestoneTemplates);
+
+      // --- NEW: Global Era Adaptive Logic ---
+      // If the global anchor matches specific catastrophic eras, force a high chance of thematic events
+      if (backdrop.prefix === "The Frozen Century" && P(0.4)) {
+        template = { 
+          title: "The Frost Bite", 
+          text: () => `As glaciers pushed down from the north during ${backdrop.prefix}, ${entityName} was forced to completely abandon its northernmost crop networks.` 
+        };
+      } else if (backdrop.prefix === "The Great Inundation" && P(0.4)) {
+        template = { 
+          title: "The Rising Tides", 
+          text: () => `Unprecedented sea level rises from ${backdrop.prefix} compromised the low-lying administrative structures of ${entityName}.` 
+        };
+      } else if (backdrop.prefix === "The Magister's Fall" && P(0.4)) {
+        template = { 
+          title: "Echoes of the Spire", 
+          text: () => `Debris and fallout from the collapsing sky-structures of the old magisters disrupted basic resource distribution across ${entityName}.` 
+        };
+      }
+
       events.push({
         year,
         type: "legend",
@@ -1331,7 +1384,7 @@ class HistoryModule {
     return rulers;
   }
 
-  private warEvents(state: State, foundingYear: number): HistoricalEvent[] {
+private warEvents(state: State, foundingYear: number): HistoricalEvent[] {
     const events: HistoricalEvent[] = [];
 
     (state.campaigns || []).forEach(campaign => {
@@ -1340,26 +1393,63 @@ class HistoryModule {
       const defender = pack.states[campaign.defender];
       if (!attacker || !defender) return;
 
+      const startYear = Math.round(campaign.start);
+      const endYear = campaign.end ? Math.round(campaign.end) : null;
+
+      // Check if this war has already been indexed by the opposing state
+      if (!this.sharedWorldEvents[startYear]) {
+        this.sharedWorldEvents[startYear] = {
+          title: campaign.name,
+          type: "war",
+          descriptions: {
+            [campaign.attacker]: `The ${campaign.name} began as armies under ${attacker.name} crossed the frontier, initiating an offensive campaign into ${defender.name}.`,
+            [campaign.defender]: `The ${campaign.name} broke out as defensive outposts were suddenly swarmed by an invasion force originating from ${attacker.name}.`
+          }
+        };
+      }
+
+      // Add the synchronized start text
       events.push({
-        year: Math.round(campaign.start),
+        year: startYear,
         type: "war",
         title: campaign.name,
-        text: `The ${campaign.name} broke out between ${attacker.name} and ${defender.name}.`
+        text: this.sharedWorldEvents[startYear].descriptions[state.i] || `The ${campaign.name} broke out between ${attacker.name} and ${defender.name}.`
       });
 
-      if (campaign.end) {
-        const years = Math.max(1, Math.round(campaign.end - campaign.start));
+      // Handle the synchronized end text
+      if (endYear) {
+        const endKey = startYear + 10000; // unique key offset for peace tracking
+        const years = Math.max(1, endYear - startYear);
+
+        if (!this.sharedWorldEvents[endKey]) {
+          // Systemically decide a winner based on a quick procedural check or random chance
+          const attackerWon = P(0.5); 
+          this.sharedWorldEvents[endKey] = {
+            title: `End of the ${campaign.name}`,
+            type: "peace",
+            descriptions: {
+              [campaign.attacker]: attackerWon 
+                ? `Fighting in the ${campaign.name} concluded after ${years} year${years === 1 ? "" : "s"}. Banners of victory were raised in our capital as ${defender.name} ceded core territories.`
+                : `The ${campaign.name} ground to a halt after ${years} year${years === 1 ? "" : "s"}. Our forced retreat sparked political instability within the high court.`,
+              [campaign.defender]: attackerWon 
+                ? `The tragic ${campaign.name} came to an end after ${years} year${years === 1 ? "" : "s"}. Beaten back by sheer numbers, our diplomats signed a humiliating peace treaty with ${attacker.name}.`
+                : `Fighting in the ${campaign.name} ended after ${years} bitter year${years === 1 ? "" : "s"}. Our garrison successfully stood its ground, forcing the retreating armies of ${attacker.name} to sign a status quo peace.`
+            }
+          };
+        }
+
         events.push({
-          year: Math.round(campaign.end),
+          year: endYear,
           type: "peace",
           title: `End of the ${campaign.name}`,
-          text: `Fighting in the ${campaign.name} came to an end after ${years} year${years === 1 ? "" : "s"}.`
+          text: this.sharedWorldEvents[endKey].descriptions[state.i] || `Fighting in the ${campaign.name} came to an end after ${years} year${years === 1 ? "" : "s"}.`
         });
       }
     });
 
     return events;
   }
+  
 
   private diplomacyEvents(state: State, foundingYear: number): HistoricalEvent[] {
     const diplomacy = state.diplomacy;
@@ -1408,28 +1498,41 @@ class HistoryModule {
   private flavorEvents(state: State, foundingYear: number): HistoricalEvent[] {
     const religion = pack.religions[pack.cells.religion[state.center]]?.name;
     const keys = Object.keys(FLAVOR_EVENTS);
-
-    // --- INCREASED DENSITY ---
-    // Instead of rand(1, 3), scale based on the state's total lifespan
-    const stateAge = options.year - foundingYear;
-    const count = Math.max(5, Math.round(stateAge / 40)); // Generates ~1 event every 40 years
-
+    const count = rand(1, 3);
     const events: HistoricalEvent[] = [];
-    const usedYears = new Set<number>();
 
+    // --- NEW: Hook into Cross-State Shared Global Events ---
+    Object.keys(this.sharedWorldEvents).forEach(yearStr => {
+      const globalYear = Number(yearStr);
+      // Skip if this event is outside this specific war/peace index or before state founding
+      if (globalYear > 10000 || globalYear < foundingYear + 5 || globalYear >= options.year) return;
+
+      const globalEvent = this.sharedWorldEvents[globalYear];
+      
+      if (globalEvent.title === "The Great Contagion") {
+        globalEvent.descriptions[state.i] = `The Great Contagion swept across our borders from neighboring provinces, forcing the capital to completely seal its trade ports.`;
+        events.push({
+          year: globalYear,
+          type: globalEvent.type,
+          title: globalEvent.title,
+          text: globalEvent.descriptions[state.i]
+        });
+      } else if (globalEvent.title === "The Great Currency Crash") {
+        globalEvent.descriptions[state.i] = `The continent-wide devaluation of currencies hit ${state.name} hard, sparking immense market panic and civil worker strikes.`;
+        events.push({
+          year: globalYear,
+          type: globalEvent.type,
+          title: globalEvent.title,
+          text: globalEvent.descriptions[state.i]
+        });
+      }
+    });
+
+    // Run your standard native flavor events alongside the shared global ones
     for (let i = 0; i < count; i++) {
       const key = ra(keys);
       const { type, title, text } = FLAVOR_EVENTS[key];
-
-      // Ensure we don't accidentally stack multiple flavor events on the exact same year
-      let year = rand(foundingYear + 5, Math.max(foundingYear + 6, options.year - 2));
-      let attempts = 0;
-      while (usedYears.has(year) && attempts < 10) {
-        year = rand(foundingYear + 5, Math.max(foundingYear + 6, options.year - 2));
-        attempts++;
-      }
-      usedYears.add(year);
-
+      const year = rand(foundingYear + 5, Math.max(foundingYear + 6, options.year - 2));
       events.push({ year, type, title, text: text(state, religion) });
     }
 
