@@ -16,8 +16,7 @@ export type HistoricalEventType =
   | "golden-age"
   | "religious"
   | "rebellion"
-  | "diplomacy_memory" // New classification for targeted international relations context
-  | "economic"; // Added for structural alignment with the ledger logs
+  | "diplomacy_memory"; // New classification for targeted international relations context
 
 export interface HistoricalEvent {
   year: number;
@@ -142,16 +141,7 @@ interface DiplomaticMemoryScore {
   lastCatalystYear: number;
 }
 
-//EconomicLedger state tracker that mutates chronologically as events unfold, giving the generator context for economic booms, recessions, and trade-route collapses.
-interface EconomicLedger {
-  prosperityScore: number; // 0 (Ruined) to 100 (Golden Age)
-  primaryExport: string;
-  tradePartners: number[]; // State IDs
-  infrastructureLevel: number; // Roads, ports, canals
-  debtLevel: number; // Debt accumulated during wars
-}
-
-const _EPITHETS: Record<string, string> = {
+const EPITHETS: Record<string, string> = {
   "the Great": "expanded the realm's borders and is remembered as a unifying force",
   "the Wise": "was known for just laws and a well-run court",
   "the Bold": "led armies personally and won renown on the battlefield",
@@ -605,7 +595,7 @@ class HistoryModule {
     state.rulers = rulers;
     state.rulers.sort((a, b) => b.start - a.start);
 
-    // Step 2: Build the complete timeline, injecting dynamic cultural drift AND the economic ledger trackers
+    // Step 2: Build the timeline, passing the dynamic demographics which will mutate over time based on wars and alliances
     const { events, figures } = this.buildTimelineWithCulture(
       state,
       foundingYear,
@@ -620,6 +610,80 @@ class HistoryModule {
     state.culture = updatedDemographics.primaryCultureId;
   }
 
+  private generateDynastyWithCulture(
+    state: State,
+    foundingYear: number,
+    demographics: CulturalDemographics
+  ): { rulers: Ruler[]; dynasticShifts: HistoricalEvent[]; updatedDemographics: CulturalDemographics } {
+    const rulers: Ruler[] = [];
+    const dynasticShifts: HistoricalEvent[] = [];
+    let year = foundingYear;
+
+    let currentHouseCulture = demographics.primaryCultureId;
+    const generateNewHouseName = (cId: number): string => `House ${Names.getCultureShort(cId)}`;
+    let currentHouse = generateNewHouseName(currentHouseCulture);
+
+    while (year < options.year) {
+      const reign = Math.max(1, gauss(19, 11, 1, 55));
+      const end = Math.min(options.year, year + reign);
+
+      let notable = P(0.35) ? ra(Object.keys(EPITHETS)) : undefined;
+
+      // Pull names dynamically from the current dominant house culture rather than a static state value
+      const individualName = Names.getCulture(currentHouseCulture);
+
+      if (rulers.length > 0 && P(0.3)) {
+        const previousHouse = currentHouse;
+        const previousRuler = rulers[rulers.length - 1];
+
+        // Succession Crisis: 25% chance the new usurping house belongs to a neighboring state's culture
+        const neighborStates = pack.states.filter(s => s.i && !s.removed && s.i !== state.i && state.diplomacy?.[s.i]);
+        if (neighborStates.length > 0 && P(0.25)) {
+          const foreignState = ra(neighborStates);
+          currentHouseCulture = foreignState.culture;
+
+          // Inject weight into the demographic matrix for the foreign culture
+          demographics.influenceWeights[currentHouseCulture] =
+            (demographics.influenceWeights[currentHouseCulture] || 0) + 40;
+        } else {
+          currentHouseCulture = demographics.primaryCultureId;
+        }
+
+        currentHouse = generateNewHouseName(currentHouseCulture);
+        notable = "the Usurper";
+
+        let crisisText = `Following the passing of ${previousRuler.name}, the fall of ${previousHouse} allowed the usurpers of ${currentHouse} to seize the high seat.`;
+        if (currentHouseCulture !== demographics.primaryCultureId) {
+          const foreignCultureName = pack.cultures[currentHouseCulture]?.name || "foreign custom";
+          crisisText += ` This marked a radical shift, bringing ${foreignCultureName} traditions and bloodlines directly into the royal court.`;
+        }
+
+        dynasticShifts.push({
+          year: year,
+          type: "rebellion",
+          title: "Succession Crisis",
+          text: crisisText
+        });
+
+        this.applyDemographicRipple(state, "war-casualty");
+      }
+
+      rulers.push({ name: individualName, house: currentHouse, start: year, end, notable });
+      year = end;
+    }
+
+    if (!rulers.length) {
+      rulers.push({
+        name: Names.getCulture(currentHouseCulture),
+        house: currentHouse,
+        start: foundingYear,
+        end: options.year
+      });
+    }
+
+    return { rulers, dynasticShifts, updatedDemographics: demographics };
+  }
+
   private buildTimelineWithCulture(
     state: State,
     foundingYear: number,
@@ -627,9 +691,6 @@ class HistoryModule {
     dynasticShifts: HistoricalEvent[],
     demographics: CulturalDemographics
   ): { events: HistoricalEvent[]; figures: NotableFigure[] } {
-    // FIX: Initialize the ledger to prevent biome check errors
-    const ledger = this.initializeEconomicLedger(state);
-
     // Core structural event logs
     const recordedEvents: HistoricalEvent[] = [
       ...this.warEvents(state, foundingYear),
@@ -693,14 +754,10 @@ class HistoryModule {
     // Merge the cultural shift logs back into the general timeline array
     recordedEvents.push(...culturalFractureEvents);
 
-    // FIX: Process and run the timeline through the economic analyzer, then merge it into the events array
-    const ecoEvents = this.economicEvents(state, foundingYear, ledger, recordedEvents);
-    recordedEvents.push(...ecoEvents);
-
     // Generate figures, ensuring they use the running dynamic primary culture context adjusted for chronological placement
     const { events: figureEvents, figures } = this.figureEventsWithDynamicCulture(state, foundingYear, demographics);
 
-    // Generate the actual legendary and founding events array
+    // FIX: Generate the actual legendary and founding events array
     const legendaryEvents: HistoricalEvent[] = [
       ...this.legendaryEvents(state, foundingYear),
       this.foundingEvent(state, foundingYear)
@@ -708,13 +765,12 @@ class HistoryModule {
 
     // Process rulers & apply final contextual text mappings as normal
     const rulerEvents: HistoricalEvent[] = [];
+    // (Standard ruler loop processing from previous files remains here...)
 
-    // Combine all arrays together safely
+    // FIX: Add ...legendaryEvents to the final combination array so they show up on the timeline
     const events = [...recordedEvents, ...rulerEvents, ...figureEvents, ...legendaryEvents];
     return { events, figures };
   }
-
-
 
   private figureEventsWithDynamicCulture(
     state: State,
@@ -1671,95 +1727,6 @@ class HistoryModule {
     );
     const joiner = role === "Commoner" ? ", " : " ";
     return `${name}${joiner}${template}`;
-  }
-
-  // EconomicLedger: track baseline resources and compute dynamic economic anomalies based on historical events
-  private initializeEconomicLedger(state: State): EconomicLedger {
-    // Determine baseline export based on primary biome or state traits
-    const defaultExports = ["Grain", "Timber", "Iron Ore", "Textiles", "Spices"];
-    const randomExport = defaultExports[Math.floor(Math.random() * defaultExports.length)];
-
-    return {
-      prosperityScore: 50, // Start at a stable baseline
-      primaryExport: randomExport,
-      tradePartners: [],
-      infrastructureLevel: 10,
-      debtLevel: 0
-    };
-  }
-
-  private economicEvents(
-    state: State,
-    foundingYear: number,
-    ledger: EconomicLedger,
-    baseEvents: HistoricalEvent[]
-  ): HistoricalEvent[] {
-    const economicLogs: HistoricalEvent[] = [];
-
-    // Sort the timeline chronologically so economics react accurately to wars/diplomacy
-    const chronologicalEvents = [...baseEvents].sort((a, b) => a.year - b.year);
-
-    chronologicalEvents.forEach(event => {
-      // Scenario A: War drains coffers and invites trade blockades
-      if (event.type === "war") {
-        ledger.prosperityScore = Math.max(10, ledger.prosperityScore - 20);
-        ledger.debtLevel += 30;
-
-        if (Math.random() > 0.5) {
-          economicLogs.push({
-            year: event.year + 1,
-            type: "economic",
-            title: "Trade Route Collapse",
-            text: `The ongoing conflict severely disrupted regional shipping lanes. Merchant caravans bypassed the major hubs of ${state.name}, precipitating a severe commercial recession.`
-          });
-        }
-      }
-
-      // Scenario B: Peace & Alliances open up trade networks
-      if (event.type === "peace" && event.title === "Defensive Pact") {
-        ledger.prosperityScore = Math.min(100, ledger.prosperityScore + 15);
-        ledger.infrastructureLevel += 5;
-
-        economicLogs.push({
-          year: event.year + 1,
-          type: "economic",
-          title: "Commercial Treaty signed",
-          text: `Capitalizing on diplomatic stability, merchants established a formalized trade corridor, heavily boosting the circulation of ${ledger.primaryExport}.`
-        });
-      }
-
-      // Scenario C: Natural disasters causing hyperinflation/famine
-      if (event.type === "flavor" && event.text.toLowerCase().includes("famine")) {
-        ledger.prosperityScore = Math.max(5, ledger.prosperityScore - 25);
-        economicLogs.push({
-          year: event.year,
-          type: "economic",
-          title: "Market Hyperinflation",
-          text: `Scarcity wracked the local economy. The price of basic provisions skyrocketed, forcing the crown to debase the coinage to pay its domestic debts.`
-        });
-      }
-    });
-
-    // Scenario D: Organic Golden Ages / Total Bankruptcies based on final tallies
-    const finalYear = chronologicalEvents[chronologicalEvents.length - 1]?.year || foundingYear + 200;
-
-    if (ledger.prosperityScore >= 80 && ledger.debtLevel < 20) {
-      economicLogs.push({
-        year: finalYear - Math.floor(Math.random() * 20),
-        type: "economic",
-        title: "Golden Age of Plenty",
-        text: `Driven by robust ${ledger.primaryExport} exports and unprecedented infrastructural development, ${state.name} entered a historic economic golden age.`
-      });
-    } else if (ledger.prosperityScore <= 20 || ledger.debtLevel > 80) {
-      economicLogs.push({
-        year: finalYear - Math.floor(Math.random() * 20),
-        type: "economic",
-        title: "Sovereign Default",
-        text: `Crushed under structural debt and decaying infrastructure, the treasury collapsed, leading to widespread civil unrest and a freeze on foreign commerce.`
-      });
-    }
-
-    return economicLogs;
   }
 }
 
