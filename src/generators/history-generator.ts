@@ -48,12 +48,74 @@ export type FigureRole =
   | "Architect"
   | "Outcast";
 
+//export interface NotableFigure {
 export interface NotableFigure {
   name: string;
   role: FigureRole;
   year: number;
   text: string;
+  relation?: {
+    targetName: string;
+    targetRole: FigureRole;
+    type: "descendant" | "rival" | "disciple" | "nemesis" | "successor";
+  };
 }
+
+// Relational narrative injector templates mapping dynamic connections
+const RELATIONAL_TEMPLATES: Record<
+  FigureRole,
+  Partial<Record<FigureRole, string[]>>
+> = {
+  "Spymaster": {
+    "Rebel Leader": [
+      "constructed an invisible shadow network tasked entirely with hunting down the remnants of {target}'s partisan cell.",
+      "successfully infiltrated the inner council originally left behind by the late rebel {target}, breaking their movement from within."
+    ],
+    "Ruler": [
+      "served as the eyes and ears of {target}, permanently poisoning their mind against the court nobility."
+    ]
+  },
+  "General": {
+    "Rebel Leader": [
+      "crushed the desperate peasant legions formerly rallied by {target}, restoring absolute martial order to the provinces.",
+      "was nearly assassinated by a lingering loyalist faction seeking vengeance for the execution of {target}."
+    ],
+    "General": [
+      "studied the precise vanguard tactics of the legendary {target}, using them to shatter foreign frontlines.",
+      "avenged the historic battlefield defeat of their predecessor, {target}, by reclaiming the lost borderlands."
+    ]
+  },
+  "Philosopher": {
+    "Philosopher": [
+      "published a fierce, controversial critique of {target}'s ethical framework, dividing the academies of {capital}.",
+      "expanded upon the early logic paradigms established by {target}, bringing their school of thought to its ideological peak."
+    ],
+    "Religious Figure": [
+      "attempted to logically reconcile the secular laws of the state with the sweeping prophetic visions of {target}."
+    ]
+  },
+  "Outcast": {
+    "General": [
+      "was the disgraced child of the celebrated general {target}, stripped of all family titles and driven into exile.",
+      "fled into the deep wilds after attempting to sabotage the grand military institutions built by {target}."
+    ],
+    "Ruler": [
+      "was a forgotten claimant to the throne, exiled by order of {target} to prevent a civil war."
+    ]
+  },
+  "Religious Figure": {
+    "Religious Figure": [
+      "claimed to be the spiritual successor to {target}, taking up their mantle and gathering their scattered disciples.",
+      "branded the popular teachings of the late {target} as a dangerous heresy, sparking an ideological split."
+    ]
+  },
+  "Inventor": {
+    "Inventor": [
+      "perfected the initial, flawed mechanical blue-prints left behind in {capital} by the brilliant {target}.",
+      "constructed a massive public monument dedicated to the architectural legacies of {target}."
+    ]
+  }
+};
 
 interface FigureValues {
   state: string;
@@ -1598,7 +1660,7 @@ class HistoryModule {
 
   private figureEvents(state: State, foundingYear: number): { events: HistoricalEvent[]; figures: NotableFigure[] } {
     const roles = Object.keys(FIGURE_TEMPLATES) as FigureRole[];
-    const count = rand(12, 32);
+    const count = rand(12, 32); 
 
     const values: FigureValues = {
       state: state.name,
@@ -1610,18 +1672,60 @@ class HistoryModule {
     const figures: NotableFigure[] = [];
     const events: HistoricalEvent[] = [];
 
+    // Order generations chronologically to ensure future characters can safely look back at the past
     for (let i = 0; i < count; i++) {
-      const role = ra(roles);
       const year = rand(foundingYear + 10, Math.max(foundingYear + 11, options.year - 2));
-      const campaign =
-        role === "General"
-          ? (state.campaigns || []).find(c => c.start <= year && (c.end ?? options.year) >= year)
-          : undefined;
-
+      const role = ra(roles);
       const name = Names.getCulture(state.culture);
-      const text = this.figureText(role, name, { ...values, campaign: campaign?.name });
+      
+      const campaign = role === "General" 
+        ? (state.campaigns || []).find(c => c.start <= year && (c.end ?? options.year) >= year) 
+        : undefined;
 
-      figures.push({ name, role, year, text });
+      // Scanning window: Find a historical figure who lived within the last 50 years to anchor to
+      const anchor = figures.find(f => f.year < year && year - f.year <= 50);
+      let text = "";
+      let relationData: NotableFigure["relation"] = undefined;
+
+      if (anchor && RELATIONAL_TEMPLATES[role]?.[anchor.role] && P(0.45)) {
+        // Relational branch triggered: Inject contextual webbing text
+        const templates = RELATIONAL_TEMPLATES[role][anchor.role]!;
+        const template = ra(templates)
+          .replace(/{target}/g, anchor.name)
+          .replace(/{capital}/g, values.capital)
+          .replace(/{state}/g, values.state);
+
+        text = `${name}, ${template}`;
+        
+        // Define relation structural details for UI tooltips or downstream event checks
+        const relationshipTypes: Record<FigureRole, NotableFigure["relation"]["type"]> = {
+          "Spymaster": "nemesis",
+          "General": "successor",
+          "Rebel Leader": "rival",
+          "Philosopher": "disciple",
+          "Outcast": "descendant",
+          "Religious Figure": "successor",
+          "Inventor": "successor",
+          "Commoner": "rival",
+          "Explorer": "successor",
+          "Artist": "disciple",
+          "Merchant Magnate": "rival",
+          "Healer": "disciple",
+          "Architect": "successor"
+        };
+
+        relationData = {
+          targetName: anchor.name,
+          targetRole: anchor.role,
+          type: relationshipTypes[role] || "successor"
+        };
+      } else {
+        // Fallback to standard generation if no anchor fits the rolling narrative window
+        text = this.figureText(role, name, { ...values, campaign: campaign?.name });
+      }
+
+      const newFigure: NotableFigure = { name, role, year, text, relation: relationData };
+      figures.push(newFigure);
       events.push({ year, type: "figure", title: `${name}, ${role}`, text });
     }
 
