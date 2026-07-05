@@ -141,6 +141,15 @@ interface DiplomaticMemoryScore {
   lastCatalystYear: number;
 }
 
+//EconomicLedger state tracker that mutates chronologically as events unfold, giving the generator context for economic booms, recessions, and trade-route collapses.
+interface EconomicLedger {
+  prosperityScore: number; // 0 (Ruined) to 100 (Golden Age)
+  primaryExport: string;
+  tradePartners: number[]; // State IDs
+  infrastructureLevel: number; // Roads, ports, canals
+  debtLevel: number; // Debt accumulated during wars
+}
+
 const EPITHETS: Record<string, string> = {
   "the Great": "expanded the realm's borders and is remembered as a unifying force",
   "the Wise": "was known for just laws and a well-run court",
@@ -1728,6 +1737,97 @@ class HistoryModule {
     const joiner = role === "Commoner" ? ", " : " ";
     return `${name}${joiner}${template}`;
   }
+
+
+  // EconomicLedger: track baseline resources and compute dynamic economic anomalies based on historical events
+  private initializeEconomicLedger(state: State): EconomicLedger {
+    // Determine baseline export based on primary biome or state traits
+    const defaultExports = ["Grain", "Timber", "Iron Ore", "Textiles", "Spices"];
+    const randomExport = defaultExports[Math.floor(Math.random() * defaultExports.length)];
+
+    return {
+      prosperityScore: 50, // Start at a stable baseline
+      primaryExport: randomExport,
+      tradePartners: [],
+      infrastructureLevel: 10,
+      debtLevel: 0
+    };
+  }
+
+  private economicEvents(
+    state: State, 
+    foundingYear: number, 
+    ledger: EconomicLedger, 
+    baseEvents: HistoricalEvent[]
+  ): HistoricalEvent[] {
+    const economicLogs: HistoricalEvent[] = [];
+    
+    // Sort the timeline chronologically so economics react accurately to wars/diplomacy
+    const chronologicalEvents = [...baseEvents].sort((a, b) => a.year - b.year);
+
+    chronologicalEvents.forEach(event => {
+      // Scenario A: War drains coffers and invites trade blockades
+      if (event.type === "war") {
+        ledger.prosperityScore = Math.max(10, ledger.prosperityScore - 20);
+        ledger.debtLevel += 30;
+        
+        if (Math.random() > 0.5) {
+          economicLogs.push({
+            year: event.year + 1,
+            type: "economic",
+            title: "Trade Route Collapse",
+            text: `The ongoing conflict severely disrupted regional shipping lanes. Merchant caravans bypassed the major hubs of ${state.name}, precipitating a severe commercial recession.`
+          });
+        }
+      }
+
+      // Scenario B: Peace & Alliances open up trade networks
+      if (event.type === "peace" && event.title === "Defensive Pact") {
+        ledger.prosperityScore = Math.min(100, ledger.prosperityScore + 15);
+        ledger.infrastructureLevel += 5;
+        
+        economicLogs.push({
+          year: event.year + 1,
+          type: "economic",
+          title: "Commercial Treaty signed",
+          text: `Capitalizing on diplomatic stability, merchants established a formalized trade corridor, heavily boosting the circulation of ${ledger.primaryExport}.`
+        });
+      }
+
+      // Scenario C: Natural disasters causing hyperinflation/famine
+      if (event.type === "flavor" && event.text.toLowerCase().includes("famine")) {
+        ledger.prosperityScore = Math.max(5, ledger.prosperityScore - 25);
+        economicLogs.push({
+          year: event.year,
+          type: "economic",
+          title: "Market Hyperinflation",
+          text: `Scarcity wracked the local economy. The price of basic provisions skyrocketed, forcing the crown to debase the coinage to pay its domestic debts.`
+        });
+      }
+    });
+
+    // Scenario D: Organic Golden Ages / Total Bankruptcies based on final tallies
+    const finalYear = chronologicalEvents[chronologicalEvents.length - 1]?.year || (foundingYear + 200);
+    
+    if (ledger.prosperityScore >= 80 && ledger.debtLevel < 20) {
+      economicLogs.push({
+        year: finalYear - Math.floor(Math.random() * 20),
+        type: "economic",
+        title: "Golden Age of Plenty",
+        text: `Driven by robust ${ledger.primaryExport} exports and unprecedented infrastructural development, ${state.name} entered a historic economic golden age.`
+      });
+    } else if (ledger.prosperityScore <= 20 || ledger.debtLevel > 80) {
+      economicLogs.push({
+        year: finalYear - Math.floor(Math.random() * 20),
+        type: "economic",
+        title: "Sovereign Default",
+        text: `Crushed under structural debt and decaying infrastructure, the treasury collapsed, leading to widespread civil unrest and a freeze on foreign commerce.`
+      });
+    }
+
+    return economicLogs;
+  }
+
 }
 
 window.History = new HistoryModule();
