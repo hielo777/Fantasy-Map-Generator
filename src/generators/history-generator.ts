@@ -15,7 +15,9 @@ export type HistoricalEventType =
   | "disaster"
   | "golden-age"
   | "religious"
-  | "rebellion";
+  | "rebellion"
+  | "diplomacy_memory"; // New classification for targeted international relations context
+
 
 export interface HistoricalEvent {
   year: number;
@@ -77,6 +79,15 @@ export interface WorldHistory {
   activeGlobalEra: AncientEra | null;
   sharedWorldEvents: Record<number, SharedWorldEvent>;
 }
+
+// Memory Matrix tracking point weights for dynamically overriding relationship standings
+interface DiplomaticMemoryScore {
+  historicalGrudges: number;     // Negative memory weight (wars, annexations)
+  historicalAccords: number;     // Positive memory weight (alliances, trade pacts)
+  lastCatalystYear: number;
+}
+
+
 
 const EPITHETS: Record<string, string> = {
   "the Great": "expanded the realm's borders and is remembered as a unifying force",
@@ -184,38 +195,134 @@ const LEGEND_DOWNFALLS: Record<string, (entity: string) => string> = {
 };
 
 const ANCIENT_ERAS: AncientEra[] = [
-  { prefix: "The Age of Dawn", text: "Before the current borders took form, the land was a wild sprawl of primal tribes and untamed mystical forces." },
-  { prefix: "The Lost Hegemony", text: "Centuries ago, a massive, highly centralized empire spanned these territories before collapsing under its own weight." },
-  { prefix: "The Sundered Realm", text: "An ancient collapse, brought on by localized infighting and shifting climates, fractured the old world into disparate clans." },
-  { prefix: "The Sea-King Dynasty", text: "Ancient maritime empires ruled the regional coastlines with absolute tyranny, demanding heavy tributes from inland settlements." },
-  { prefix: "The Iron Migration", text: "A massive, centuries-old exodus forced entire populations across the continent, erasing ancient borders and leveling early towns." },
-  { prefix: "The Ruined Concordat", text: "A legendary federation of trading towns once preserved an absolute peace across these lands before being undone by sudden resource scarcity." },
-  { prefix: "The Primordial Shroud", text: "Before modern clearings were made, an impenetrable wilderness kept the ancestors divided into tiny, terrified enclaves." },
-  { prefix: "The Eclipse of Stars", text: "A legendary cosmic alignment or astrological cataclysm struck the old world, triggering decades of dark skies and societal paranoia." },
-  { prefix: "The Obsidian Dynasty", text: "A ruthless, proto-industrial state ruled from monolithic stone cities, stripping the hills bare for resources before mysteriously vanishing." },
-  { prefix: "The Great Inundation", text: "Massive, prehistoric floods reshaped the river valleys and coastlines, swallowing ancient cities and forcing survivors to flee to higher ground." },
-  { prefix: "The Chimeric League", text: "A loose, experimental alliance of vastly different cultures once shared this land, leaving behind bizarre, mismatched architectural landmarks." },
-  { prefix: "The Age of Silent Whispers", text: "A highly advanced, secretive society dominated the region through subtle economic manipulation and an unparalleled network of subterranean tunnels." },
-  { prefix: "The Bronze Crucible", text: "Before iron was ever forged, early metalworkers established a web of highly fortified hill-forts that constantly warred over precious tin mines." },
-  { prefix: "The Nomadic Deluge", text: "A relentless, decades-long wave of mounted raiders from distant horizons swept across the plains, fracturing the native populations into scattered refuge-seekers." },
-  { prefix: "The Magister's Fall", text: "An elite caste of mystic scholars and philosophers ruled the land from floating or high-altitude spires until an internal civil war brought their towers crashing down." },
-  { prefix: "The Salt Syndicate", text: "A dominant merchant cartel once controlled every major road, water source, and trade crossroad, treating the entire continent as a corporate ledger." },
-  { prefix: "The Ancestral Truce", text: "A mythic, centuries-long peace governed by a strict code of hospitality once united the valley before a forgotten betrayal sparked endless blood feuds." },
-  { prefix: "The Frozen Century", text: "An abrupt, catastrophic drop in regional temperatures locked the land in a bitter mini-ice age, destroying early agrarian societies and forcing massive southward migrations." },
-  { prefix: "The Broken Monoliths", text: "A civilization centered around erecting colossal geometric monuments controlled the region, leaving behind stone rings whose original purpose is entirely lost to time." },
-  { prefix: "The Ashen Century", text: "A string of violent volcanic eruptions blanketed the continent in soot, causing widespread crop failure and forcing early settlements underground." },
-  { prefix: "The Dynasty of the Blind King", text: "Lore speaks of a legendary monarch who ruled through a vast network of blind telepathic monks, creating a strange era of absolute compliance before their order vanished." },
-  { prefix: "The Great Wall-Builders", text: "An ancient civilization attempted to isolate the entire regional border behind an impossibly massive stone barrier, bankrupting their society and leaving behind colossal, crumbling ramparts." },
-  { prefix: "The Emerald Pact", text: "Long ago, human settlements and ancient woodland spirits abided by a strict ecological contract, keeping civilization confined to harmonious, low-impact settlements." },
-  { prefix: "The Silver Rush", text: "A massive, uncontrolled mountain extraction boom drew hundreds of thousands to the hills, establishing lawless boomtowns that collapsed as soon as the veins ran dry." },
-  { prefix: "The Concord of Silk", text: "An age defined by incredibly complex trade routes, where merchant princes held more power than kings and laws were written entirely as balance sheets." },
-  { prefix: "The Forgotten Rebellion", text: "A prehistoric slave revolt successfully dismantled an tyrannical magocracy, though the resulting power vacuum plunged the lands into centuries of lawless warlordism." },
-  { prefix: "The Heretic Reformation", text: "A sweeping iconoclastic religious movement tore across the ancient provinces, systematically destroying old temples and historical records before fracturing into countless splinter sects." },
-  { prefix: "The Sun-King Accord", text: "An absolute monarchy ruled by dynamic sun-worshipers built giant golden spires before a sudden internal succession dispute triggered a catastrophic collapse." },
-  { prefix: "The Sinking Coast", text: "Severe seismic shifts slowly caused the maritime boundaries to sink beneath the ocean, swallowing historical ports and permanently altering regional layouts." },
-  { prefix: "The Iron Guild Hegemony", text: "A hyper-rigid syndicate of master blacksmiths and foundry lords controlled the keys to all metallurgy, effectively acting as the shadow rulers of the continent." },
-  { prefix: "The Great Nomad Union", text: "A visionary nomadic khan managed to unite every wandering tribe under a single code of laws, creating a temporary empire of tents that dissolved upon their death." },
-  { prefix: "The Age of the Great Library", text: "A short-lived but brilliant era where a decentralized council of sages gathered all global knowledge into a central grand archive before it was tragically burned." }
+  {
+    prefix: "The Age of Dawn",
+    text: "Before the current borders took form, the land was a wild sprawl of primal tribes and untamed mystical forces."
+  },
+  {
+    prefix: "The Lost Hegemony",
+    text: "Centuries ago, a massive, highly centralized empire spanned these territories before collapsing under its own weight."
+  },
+  {
+    prefix: "The Sundered Realm",
+    text: "An ancient collapse, brought on by localized infighting and shifting climates, fractured the old world into disparate clans."
+  },
+  {
+    prefix: "The Sea-King Dynasty",
+    text: "Ancient maritime empires ruled the regional coastlines with absolute tyranny, demanding heavy tributes from inland settlements."
+  },
+  {
+    prefix: "The Iron Migration",
+    text: "A massive, centuries-old exodus forced entire populations across the continent, erasing ancient borders and leveling early towns."
+  },
+  {
+    prefix: "The Ruined Concordat",
+    text: "A legendary federation of trading towns once preserved an absolute peace across these lands before being undone by sudden resource scarcity."
+  },
+  {
+    prefix: "The Primordial Shroud",
+    text: "Before modern clearings were made, an impenetrable wilderness kept the ancestors divided into tiny, terrified enclaves."
+  },
+  {
+    prefix: "The Eclipse of Stars",
+    text: "A legendary cosmic alignment or astrological cataclysm struck the old world, triggering decades of dark skies and societal paranoia."
+  },
+  {
+    prefix: "The Obsidian Dynasty",
+    text: "A ruthless, proto-industrial state ruled from monolithic stone cities, stripping the hills bare for resources before mysteriously vanishing."
+  },
+  {
+    prefix: "The Great Inundation",
+    text: "Massive, prehistoric floods reshaped the river valleys and coastlines, swallowing ancient cities and forcing survivors to flee to higher ground."
+  },
+  {
+    prefix: "The Chimeric League",
+    text: "A loose, experimental alliance of vastly different cultures once shared this land, leaving behind bizarre, mismatched architectural landmarks."
+  },
+  {
+    prefix: "The Age of Silent Whispers",
+    text: "A highly advanced, secretive society dominated the region through subtle economic manipulation and an unparalleled network of subterranean tunnels."
+  },
+  {
+    prefix: "The Bronze Crucible",
+    text: "Before iron was ever forged, early metalworkers established a web of highly fortified hill-forts that constantly warred over precious tin mines."
+  },
+  {
+    prefix: "The Nomadic Deluge",
+    text: "A relentless, decades-long wave of mounted raiders from distant horizons swept across the plains, fracturing the native populations into scattered refuge-seekers."
+  },
+  {
+    prefix: "The Magister's Fall",
+    text: "An elite caste of mystic scholars and philosophers ruled the land from floating or high-altitude spires until an internal civil war brought their towers crashing down."
+  },
+  {
+    prefix: "The Salt Syndicate",
+    text: "A dominant merchant cartel once controlled every major road, water source, and trade crossroad, treating the entire continent as a corporate ledger."
+  },
+  {
+    prefix: "The Ancestral Truce",
+    text: "A mythic, centuries-long peace governed by a strict code of hospitality once united the valley before a forgotten betrayal sparked endless blood feuds."
+  },
+  {
+    prefix: "The Frozen Century",
+    text: "An abrupt, catastrophic drop in regional temperatures locked the land in a bitter mini-ice age, destroying early agrarian societies and forcing massive southward migrations."
+  },
+  {
+    prefix: "The Broken Monoliths",
+    text: "A civilization centered around erecting colossal geometric monuments controlled the region, leaving behind stone rings whose original purpose is entirely lost to time."
+  },
+  {
+    prefix: "The Ashen Century",
+    text: "A string of violent volcanic eruptions blanketed the continent in soot, causing widespread crop failure and forcing early settlements underground."
+  },
+  {
+    prefix: "The Dynasty of the Blind King",
+    text: "Lore speaks of a legendary monarch who ruled through a vast network of blind telepathic monks, creating a strange era of absolute compliance before their order vanished."
+  },
+  {
+    prefix: "The Great Wall-Builders",
+    text: "An ancient civilization attempted to isolate the entire regional border behind an impossibly massive stone barrier, bankrupting their society and leaving behind colossal, crumbling ramparts."
+  },
+  {
+    prefix: "The Emerald Pact",
+    text: "Long ago, human settlements and ancient woodland spirits abided by a strict ecological contract, keeping civilization confined to harmonious, low-impact settlements."
+  },
+  {
+    prefix: "The Silver Rush",
+    text: "A massive, uncontrolled mountain extraction boom drew hundreds of thousands to the hills, establishing lawless boomtowns that collapsed as soon as the veins ran dry."
+  },
+  {
+    prefix: "The Concord of Silk",
+    text: "An age defined by incredibly complex trade routes, where merchant princes held more power than kings and laws were written entirely as balance sheets."
+  },
+  {
+    prefix: "The Forgotten Rebellion",
+    text: "A prehistoric slave revolt successfully dismantled an tyrannical magocracy, though the resulting power vacuum plunged the lands into centuries of lawless warlordism."
+  },
+  {
+    prefix: "The Heretic Reformation",
+    text: "A sweeping iconoclastic religious movement tore across the ancient provinces, systematically destroying old temples and historical records before fracturing into countless splinter sects."
+  },
+  {
+    prefix: "The Sun-King Accord",
+    text: "An absolute monarchy ruled by dynamic sun-worshipers built giant golden spires before a sudden internal succession dispute triggered a catastrophic collapse."
+  },
+  {
+    prefix: "The Sinking Coast",
+    text: "Severe seismic shifts slowly caused the maritime boundaries to sink beneath the ocean, swallowing historical ports and permanently altering regional layouts."
+  },
+  {
+    prefix: "The Iron Guild Hegemony",
+    text: "A hyper-rigid syndicate of master blacksmiths and foundry lords controlled the keys to all metallurgy, effectively acting as the shadow rulers of the continent."
+  },
+  {
+    prefix: "The Great Nomad Union",
+    text: "A visionary nomadic khan managed to unite every wandering tribe under a single code of laws, creating a temporary empire of tents that dissolved upon their death."
+  },
+  {
+    prefix: "The Age of the Great Library",
+    text: "A short-lived but brilliant era where a decentralized council of sages gathered all global knowledge into a central grand archive before it was tragically burned."
+  }
 ];
 
 const FIGURE_TEMPLATES: Record<FigureRole, string[]> = {
@@ -326,6 +433,21 @@ const FIGURE_TEMPLATES: Record<FigureRole, string[]> = {
 };
 
 class HistoryModule {
+
+    // Direct Ledger caching relationship metrics across state pairings dynamically
+  private diplomaticMemoryMatrix: Record<string, DiplomaticMemoryScore> = {};
+
+  private getMemoryKey(idA: number, idB: number): string {
+    return idA < idB ? `${idA}_${idB}` : `${idB}_${idA}`;
+  }
+
+  private getMemory(idA: number, idB: number): DiplomaticMemoryScore {
+    const key = this.getMemoryKey(idA, idB);
+    this.diplomaticMemoryMatrix[key] ??= { historicalGrudges: 0, historicalAccords: 0, lastCatalystYear: 0 };
+    return this.diplomaticMemoryMatrix[key];
+  }
+
+
   private ensureWorldHistory(): WorldHistory {
     pack.history ??= { activeGlobalEra: null, sharedWorldEvents: {} };
     return pack.history;
@@ -352,6 +474,11 @@ class HistoryModule {
 
     const isFullRun = stateId === null;
 
+    if (isFullRun && regenerate) {
+      this.diplomaticMemoryMatrix = {}; // Reset global transactional memory banks
+    }
+
+
     if (!this.activeGlobalEra || (isFullRun && regenerate)) {
       this.activeGlobalEra = ra(ANCIENT_ERAS);
     }
@@ -361,6 +488,8 @@ class HistoryModule {
       this.seedSharedWorldEvents();
     }
 
+    // Step 1: Pre-evaluate core timelines and build out raw war/peace memory data structural traces
+
     pack.states.forEach(state => {
       if (!state.i || state.removed) return;
       if (stateId !== null && state.i !== stateId) return;
@@ -368,6 +497,13 @@ class HistoryModule {
 
       this.regenerateState(state);
     });
+
+    // Step 2: Systemically project structural memories back onto live active map diplomatic standings
+    if (isFullRun) {
+      this.synchronizeGeopoliticalDiplomacy();
+    }
+
+
 
     TIME && console.timeEnd("generateHistory");
   }
@@ -390,16 +526,44 @@ class HistoryModule {
 
   private regenerateState(state: State): void {
     const foundingYear = this.getFoundingYear();
-    
+
     // Custom Structuring Capture: Returns both the dynasty lineage lists AND tracking shifts
     const { rulers, dynasticShifts } = this.generateDynasty(state, foundingYear);
     state.rulers = rulers;
-    state.rulers.sort((a, b) => b.start - a.start); 
+    state.rulers.sort((a, b) => b.start - a.start);
 
     const { events, figures } = this.buildTimeline(state, foundingYear, rulers, dynasticShifts);
-    state.figures = figures.sort((a, b) => b.year - a.year); 
-    state.history = events.sort((a, b) => b.year - a.year); 
+    state.figures = figures.sort((a, b) => b.year - a.year);
+    state.history = events.sort((a, b) => b.year - a.year);
   }
+
+
+
+  // Iterates through memory matrix and applies adjustments directly into live map state array parameters
+  private synchronizeGeopoliticalDiplomacy(): void {
+    pack.states.forEach(stateA => {
+      if (!stateA.i || stateA.removed || !stateA.diplomacy) return;
+
+      const diplomacy = stateA.diplomacy;
+
+      pack.states.forEach(stateB => {
+        if (!stateB.i || stateB.removed || stateA.i === stateB.i) return;
+
+        const memory = this.getMemory(stateA.i, stateB.i);
+        const netBias = memory.historicalAccords - memory.historicalGrudges;
+
+        // Mutate real map values dynamically using weighted generational benchmarks 
+        if (netBias <= -3) {
+          diplomacy[stateB.i] = "Rival";
+        } else if (netBias >= 3) {
+          diplomacy[stateB.i] = "Ally";
+        } else if (netBias < 0 && diplomacy[stateB.i] === "Ally") {
+          diplomacy[stateB.i] = "Suspicious";
+        }
+      });
+    });
+  }
+
 
   onStateRename(stateId: number): void {
     const state = pack.states[stateId];
@@ -445,10 +609,10 @@ class HistoryModule {
 
   private applyDemographicRipple(state: State, type: "war-casualty" | "peace-boom" | "plague-loss" | "economic-boost") {
     const capitalBurg = pack.burgs[state.capital];
-    
+
     switch (type) {
       case "war-casualty":
-        if (capitalBurg) capitalBurg.population = Math.max(1, Math.round(capitalBurg.population * 0.90));
+        if (capitalBurg) capitalBurg.population = Math.max(1, Math.round(capitalBurg.population * 0.9));
         state.urban = Math.max(1, Math.round(state.urban * 0.92));
         state.rural = Math.max(1, Math.round(state.rural * 0.95));
         break;
@@ -460,7 +624,7 @@ class HistoryModule {
       case "peace-boom":
       case "economic-boost":
         if (capitalBurg) capitalBurg.population = Math.round(capitalBurg.population * 1.08);
-        state.urban = Math.round(state.urban * 1.10);
+        state.urban = Math.round(state.urban * 1.1);
         state.rural = Math.round(state.rural * 1.05);
         break;
     }
@@ -476,7 +640,8 @@ class HistoryModule {
       ...this.warEvents(state, foundingYear),
       ...this.diplomacyEvents(state, foundingYear),
       ...this.flavorEvents(state, foundingYear),
-      ...dynasticShifts // Directly injects the custom succession civil wars into layout bounds
+      ...dynasticShifts, // Directly injects the custom succession civil wars into layout bounds
+      ...this.generateHistoricalMemoryFlavor(state, foundingYear) // Injects targeted memory logs explicitly
     ];
 
     const { events: figureEvents, figures } = this.figureEvents(state, foundingYear);
@@ -490,7 +655,7 @@ class HistoryModule {
 
     rulers.forEach(ruler => {
       const reignEvents = this.getEventsInWindow(recordedEvents, ruler.start, ruler.end);
-      
+
       const warCount = reignEvents.filter(e => e.type === "war").length;
       const peaceCount = reignEvents.filter(e => e.type === "peace").length;
       const disasterCount = reignEvents.filter(e => e.type === "disaster").length;
@@ -506,7 +671,8 @@ class HistoryModule {
         this.applyDemographicRipple(state, "war-casualty");
       } else if (warCount >= 2) {
         dynamicEpithet = "the Bold";
-        legacySnippet = "led the nation through periods of intense military mobilization and grinding territorial conflict";
+        legacySnippet =
+          "led the nation through periods of intense military mobilization and grinding territorial conflict";
         this.applyDemographicRipple(state, "war-casualty");
       } else if (peaceCount >= 2 || goldenAgeCount >= 1) {
         dynamicEpithet = "the Wise";
@@ -515,13 +681,14 @@ class HistoryModule {
       } else if (disasterCount >= 1) {
         const containsPlague = reignEvents.some(e => e.title.includes("Plague") || e.title.includes("Contagion"));
         dynamicEpithet = "the Unlucky";
-        legacySnippet = containsPlague 
+        legacySnippet = containsPlague
           ? "struggled heavily to maintain institutional authority amidst devastating structural plague losses"
           : "presided over a troubled administration struck by extreme hardships and severe resource scarcity";
         this.applyDemographicRipple(state, containsPlague ? "plague-loss" : "war-casualty");
       } else if (ruler.end - ruler.start > 40) {
         dynamicEpithet = "the Ancient";
-        legacySnippet = "oversaw a prolonged generation of absolute administrative stability and infrastructure continuity";
+        legacySnippet =
+          "oversaw a prolonged generation of absolute administrative stability and infrastructure continuity";
         this.applyDemographicRipple(state, "peace-boom");
       } else {
         dynamicEpithet = ruler.notable || (ruler.name.charCodeAt(0) % 2 === 0 ? "the Just" : "the Fair");
@@ -582,7 +749,7 @@ class HistoryModule {
       }
     ];
 
-    const intermediateEventCount = rand(5, 12); 
+    const intermediateEventCount = rand(5, 12);
     const milestoneYears: number[] = [];
 
     while (milestoneYears.length < intermediateEventCount) {
@@ -1107,17 +1274,20 @@ class HistoryModule {
       if (backdrop.prefix === "The Frozen Century" && P(0.4)) {
         template = {
           title: "The Frost Bite",
-          text: () => `As glaciers pushed down from the north during ${backdrop.prefix}, ${entityName} was forced to completely abandon its northernmost crop networks.`
+          text: () =>
+            `As glaciers pushed down from the north during ${backdrop.prefix}, ${entityName} was forced to completely abandon its northernmost crop networks.`
         };
       } else if (backdrop.prefix === "The Great Inundation" && P(0.4)) {
         template = {
           title: "The Rising Tides",
-          text: () => `Unprecedented sea level rises from ${backdrop.prefix} compromised the low-lying administrative structures of ${entityName}.`
+          text: () =>
+            `Unprecedented sea level rises from ${backdrop.prefix} compromised the low-lying administrative structures of ${entityName}.`
         };
       } else if (backdrop.prefix === "The Magister's Fall" && P(0.4)) {
         template = {
           title: "Echoes of the Spire",
-          text: () => `Debris and fallout from the collapsing sky-structures of the old magisters disrupted basic resource distribution across ${entityName}.`
+          text: () =>
+            `Debris and fallout from the collapsing sky-structures of the old magisters disrupted basic resource distribution across ${entityName}.`
         };
       }
 
@@ -1181,23 +1351,24 @@ class HistoryModule {
 
     // Local execution helper to fetch a brand-new cultural House identity name
     const generateNewHouseName = (): string => `House ${Names.getCultureShort(state.culture)}`;
-    
+
     let currentHouse = generateNewHouseName();
 
     while (year < options.year) {
       const reign = Math.max(1, gauss(19, 11, 1, 55));
       const end = Math.min(options.year, year + reign);
-      
+
       let notable = P(0.35) ? ra(Object.keys(EPITHETS)) : undefined;
       const individualName = Names.getCulture(state.culture);
 
       // Handle the 70% chance of succession continuity vs 30% Dynastic Shift ruleset
       if (rulers.length > 0) {
-        if (P(0.30)) { // 30% Dynastic Shift Trigger
+        if (P(0.3)) {
+          // 30% Dynastic Shift Trigger
           const previousHouse = currentHouse;
           const previousRuler = rulers[rulers.length - 1];
           currentHouse = generateNewHouseName();
-          
+
           // Force Usurper status designation mapping directly to this event
           notable = "the Usurper";
 
@@ -1225,11 +1396,11 @@ class HistoryModule {
     }
 
     if (!rulers.length) {
-      rulers.push({ 
-        name: Names.getCulture(state.culture), 
-        house: currentHouse, 
-        start: foundingYear, 
-        end: options.year 
+      rulers.push({
+        name: Names.getCulture(state.culture),
+        house: currentHouse,
+        start: foundingYear,
+        end: options.year
       });
     }
 
@@ -1248,6 +1419,11 @@ class HistoryModule {
       const startYear = Math.round(campaign.start);
       const endYear = campaign.end ? Math.round(campaign.end) : null;
 
+      // Log Grudge accumulation in transactional index banks dynamically
+      const memory = this.getMemory(campaign.attacker, campaign.defender);
+      memory.historicalGrudges += 2; // Increments systemic bitterness matrix score
+      memory.lastCatalystYear = startYear;
+
       if (!this.sharedWorldEvents[startYear]) {
         this.sharedWorldEvents[startYear] = {
           title: campaign.name,
@@ -1263,11 +1439,13 @@ class HistoryModule {
         year: startYear,
         type: "war",
         title: campaign.name,
-        text: this.sharedWorldEvents[startYear].descriptions[state.i] || `The ${campaign.name} broke out between ${attacker.name} and ${defender.name}.`
+        text:
+          this.sharedWorldEvents[startYear].descriptions[state.i] ||
+          `The ${campaign.name} broke out between ${attacker.name} and ${defender.name}.`
       });
 
       if (endYear) {
-        const endKey = startYear + 10000; 
+        const endKey = startYear + 10000;
         const years = Math.max(1, endYear - startYear);
 
         if (!this.sharedWorldEvents[endKey]) {
@@ -1290,7 +1468,9 @@ class HistoryModule {
           year: endYear,
           type: "peace",
           title: `End of the ${campaign.name}`,
-          text: this.sharedWorldEvents[endKey].descriptions[state.i] || `Fighting in the ${campaign.name} came to an end after ${years} year${years === 1 ? "" : "s"}.`
+          text:
+            this.sharedWorldEvents[endKey].descriptions[state.i] ||
+            `Fighting in the ${campaign.name} came to an end after ${years} year${years === 1 ? "" : "s"}.`
         });
       }
     });
@@ -1307,6 +1487,11 @@ class HistoryModule {
 
     const allyIndex = diplomacy.indexOf("Ally");
     if (isValid(allyIndex)) {
+      const year = rand(foundingYear + 5, options.year);
+      const memory = this.getMemory(state.i, allyIndex);
+      memory.historicalAccords += 3; // Log dynamic agreement score
+      memory.lastCatalystYear = year;
+
       events.push({
         year: rand(foundingYear + 5, options.year),
         type: "peace",
@@ -1317,8 +1502,12 @@ class HistoryModule {
 
     const vassalOfIndex = diplomacy.indexOf("Vassal");
     if (isValid(vassalOfIndex)) {
+      const year = rand(foundingYear + 5, options.year);
+      const memory = this.getMemory(state.i, vassalOfIndex);
+      memory.historicalGrudges += 4; // Subjugation triggers deep long-term structural grudges
+
       events.push({
-        year: rand(foundingYear + 5, options.year),
+        year,
         type: "war",
         title: "Vassalization",
         text: `${state.name} submitted to ${pack.states[vassalOfIndex].name} and accepted vassal status.`
@@ -1338,6 +1527,38 @@ class HistoryModule {
     return events;
   }
 
+  // Generates unique narrative timeline events directly explaining ongoing political alignments
+  private generateHistoricalMemoryFlavor(state: State, foundingYear: number): HistoricalEvent[] {
+    const memoryEvents: HistoricalEvent[] = [];
+
+    pack.states.forEach(targetState => {
+      if (!targetState.i || targetState.removed || targetState.i === state.i) return;
+
+      const memory = this.getMemory(state.i, targetState.i);
+      if (memory.lastCatalystYear === 0) return;
+
+      // Distribute a unique contextual memory tracking event relative to ledger weightings
+      if (memory.historicalGrudges >= 4 && P(0.3)) {
+        const generationGap = Math.max(15, Math.round(options.year - memory.lastCatalystYear));
+        memoryEvents.push({
+          year: Math.min(options.year - 2, memory.lastCatalystYear + rand(5, 12)),
+          type: "diplomacy_memory",
+          title: "Ancestral Bitter Grudge",
+          text: `Relations between ${state.name} and ${targetState.name} soured deeply. Public sentiment remains heavily stained by blood memories tracing back ${generationGap} years to historical frontier incidents.`
+        });
+      } else if (memory.historicalAccords >= 3 && P(0.3)) {
+        memoryEvents.push({
+          year: Math.min(options.year - 2, memory.lastCatalystYear + rand(4, 10)),
+          type: "diplomacy_memory",
+          title: "Generational Bond",
+          text: `A grand celebration in the capital honored the enduring fraternity between ${state.name} and ${targetState.name}, reinforcing open trade corridors and mutual defense arrangements.`
+        });
+      }
+    });
+
+    return memoryEvents;
+  }
+
   private flavorEvents(state: State, foundingYear: number): HistoricalEvent[] {
     const religion = pack.religions[pack.cells.religion[state.center]]?.name;
     const keys = Object.keys(FLAVOR_EVENTS);
@@ -1351,7 +1572,8 @@ class HistoryModule {
       const globalEvent = this.sharedWorldEvents[globalYear];
 
       if (globalEvent.title === "The Great Contagion") {
-        globalEvent.descriptions[state.i] = `The Great Contagion swept across our borders from neighboring provinces, forcing the capital to completely seal its trade ports.`;
+        globalEvent.descriptions[state.i] =
+          `The Great Contagion swept across our borders from neighboring provinces, forcing the capital to completely seal its trade ports.`;
         events.push({
           year: globalYear,
           type: globalEvent.type,
@@ -1359,9 +1581,9 @@ class HistoryModule {
           text: globalEvent.descriptions[state.i]
         });
         this.applyDemographicRipple(state, "plague-loss");
-
       } else if (globalEvent.title === "The Great Currency Crash") {
-        globalEvent.descriptions[state.i] = `The continent-wide devaluation of currencies hit ${state.name} hard, sparking immense market panic and civil worker strikes.`;
+        globalEvent.descriptions[state.i] =
+          `The continent-wide devaluation of currencies hit ${state.name} hard, sparking immense market panic and civil worker strikes.`;
         events.push({
           year: globalYear,
           type: globalEvent.type,
@@ -1377,7 +1599,7 @@ class HistoryModule {
       const { type, title, text } = FLAVOR_EVENTS[key];
       const year = rand(foundingYear + 5, Math.max(foundingYear + 6, options.year - 2));
       events.push({ year, type, title, text: text(state, religion) });
-      
+
       if (type === "golden-age") this.applyDemographicRipple(state, "peace-boom");
       if (type === "disaster" || type === "rebellion") this.applyDemographicRipple(state, "war-casualty");
     }
@@ -1387,7 +1609,7 @@ class HistoryModule {
 
   private figureEvents(state: State, foundingYear: number): { events: HistoricalEvent[]; figures: NotableFigure[] } {
     const roles = Object.keys(FIGURE_TEMPLATES) as FigureRole[];
-    const count = rand(12, 32); 
+    const count = rand(12, 32);
 
     const values: FigureValues = {
       state: state.name,
@@ -1402,7 +1624,10 @@ class HistoryModule {
     for (let i = 0; i < count; i++) {
       const role = ra(roles);
       const year = rand(foundingYear + 10, Math.max(foundingYear + 11, options.year - 2));
-      const campaign = role === "General" ? (state.campaigns || []).find(c => c.start <= year && (c.end ?? options.year) >= year) : undefined;
+      const campaign =
+        role === "General"
+          ? (state.campaigns || []).find(c => c.start <= year && (c.end ?? options.year) >= year)
+          : undefined;
 
       const name = Names.getCulture(state.culture);
       const text = this.figureText(role, name, { ...values, campaign: campaign?.name });
@@ -1421,7 +1646,10 @@ class HistoryModule {
       return placeholders.every(p => Boolean(values[p.slice(1, -1) as keyof FigureValues]));
     });
 
-    const template = ra(usable.length ? usable : templates).replace(/{(\w+)}/g, (_match, key) => values[key as keyof FigureValues] || "");
+    const template = ra(usable.length ? usable : templates).replace(
+      /{(\w+)}/g,
+      (_match, key) => values[key as keyof FigureValues] || ""
+    );
     const joiner = role === "Commoner" ? ", " : " ";
     return `${name}${joiner}${template}`;
   }
