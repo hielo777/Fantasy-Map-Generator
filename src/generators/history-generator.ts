@@ -16,7 +16,8 @@ export type HistoricalEventType =
   | "golden-age"
   | "religious"
   | "rebellion"
-  | "diplomacy_memory"; // New classification for targeted international relations context
+  | "diplomacy_memory"
+  | "economic"; // Added to align with the dynamic economic ledger system outputs
 
 export interface HistoricalEvent {
   year: number;
@@ -48,7 +49,6 @@ export type FigureRole =
   | "Architect"
   | "Outcast";
 
-//export interface NotableFigure {
 export interface NotableFigure {
   name: string;
   role: FigureRole;
@@ -59,6 +59,13 @@ export interface NotableFigure {
     targetRole: FigureRole;
     type: "descendant" | "rival" | "disciple" | "nemesis" | "successor";
   };
+}
+
+export interface EconomicLedger {
+  primaryExport: string;
+  treasuryDebt: number;
+  prosperityIndex: number;
+  infrastructureLevel: number;
 }
 
 // Relational narrative injector templates mapping dynamic connections
@@ -484,7 +491,6 @@ const FIGURE_TEMPLATES: Record<FigureRole, string[]> = {
   ]
 };
 
-// Add tracking metadata to the state object concept if needed, or maintain it inside the generation scope
 interface CulturalDemographics {
   primaryCultureId: number;
   influenceWeights: Record<number, number>; // Maps cultureId -> dynamic dominance score
@@ -543,8 +549,6 @@ class HistoryModule {
       this.seedSharedWorldEvents();
     }
 
-    // Step 1: Pre-evaluate core timelines and build out raw war/peace memory data structural traces
-
     pack.states.forEach(state => {
       if (!state.i || state.removed) return;
       if (stateId !== null && state.i !== stateId) return;
@@ -553,7 +557,6 @@ class HistoryModule {
       this.regenerateState(state);
     });
 
-    // Step 2: Systemically project structural memories back onto live active map diplomatic standings
     if (isFullRun) {
       this.synchronizeGeopoliticalDiplomacy();
     }
@@ -691,6 +694,9 @@ class HistoryModule {
     dynasticShifts: HistoricalEvent[],
     demographics: CulturalDemographics
   ): { events: HistoricalEvent[]; figures: NotableFigure[] } {
+    // FIX: Initialize the Economic Ledger tracking engine to process structural economic trends
+    const ledger = this.initializeEconomicLedger(state);
+
     // Core structural event logs
     const recordedEvents: HistoricalEvent[] = [
       ...this.warEvents(state, foundingYear),
@@ -737,11 +743,15 @@ class HistoryModule {
 
           demographics.primaryCultureId = cultureId; // Dynamic Shift Triggered!
 
+          // Structural consequence of dynamic cultural shifts: change primary export specialization
+          ledger.primaryExport = "Exotic Luxury Goods";
+          ledger.infrastructureLevel += 15;
+
           culturalFractureEvents.push({
             year: event.year + 2,
             type: "religious", // Repurposed for general societal/cultural shifts
             title: "Cultural Fracture",
-            text: `The systemic integration of foreign traditions reached a tipping point. The historic customs of ${oldCultureName} have fractured, and the state has fundamentally assimilated into the cultural sphere of ${newCultureName}.`
+            text: `The systemic integration of foreign traditions reached a tipping point. The historic customs of ${oldCultureName} have fractured, and the state has fundamentally assimilated into the cultural sphere of ${newCultureName}, transforming local production toward ${ledger.primaryExport}.`
           });
 
           // Re-balance scales around the new dominant baseline
@@ -754,10 +764,14 @@ class HistoryModule {
     // Merge the cultural shift logs back into the general timeline array
     recordedEvents.push(...culturalFractureEvents);
 
+    // FIX: Process and run the timeline through the economic analyzer, then merge the dynamic records into the core array
+    const ecoEvents = this.economicEvents(state, foundingYear, ledger, recordedEvents);
+    recordedEvents.push(...ecoEvents);
+
     // Generate figures, ensuring they use the running dynamic primary culture context adjusted for chronological placement
     const { events: figureEvents, figures } = this.figureEventsWithDynamicCulture(state, foundingYear, demographics);
 
-    // FIX: Generate the actual legendary and founding events array
+    // Generate the actual legendary and founding events array
     const legendaryEvents: HistoricalEvent[] = [
       ...this.legendaryEvents(state, foundingYear),
       this.foundingEvent(state, foundingYear)
@@ -765,9 +779,8 @@ class HistoryModule {
 
     // Process rulers & apply final contextual text mappings as normal
     const rulerEvents: HistoricalEvent[] = [];
-    // (Standard ruler loop processing from previous files remains here...)
 
-    // FIX: Add ...legendaryEvents to the final combination array so they show up on the timeline
+    // Combine all compiled historical sub-arrays into the complete return sequence
     const events = [...recordedEvents, ...rulerEvents, ...figureEvents, ...legendaryEvents];
     return { events, figures };
   }
@@ -803,6 +816,65 @@ class HistoryModule {
     }
 
     return { events, figures };
+  }
+
+  // EconomicLedger: track baseline resources and compute dynamic economic anomalies based on historical events
+  private initializeEconomicLedger(state: State): EconomicLedger {
+    // Determine baseline export based on primary biome or state traits
+    const defaultExports = ["Grain", "Timber", "Iron Ore", "Textiles", "Spices"];
+    const baseExport = ra(defaultExports);
+
+    return {
+      primaryExport: baseExport,
+      treasuryDebt: 0,
+      prosperityIndex: 100,
+      infrastructureLevel: 50
+    };
+  }
+
+  // Process timeline data to append dynamic, context-aware economic infrastructure shifts
+  private economicEvents(
+    state: State,
+    foundingYear: number,
+    ledger: EconomicLedger,
+    timelineBefore: HistoricalEvent[]
+  ): HistoricalEvent[] {
+    const generatedEco: HistoricalEvent[] = [];
+
+    // Scan for wars to compute destruction tax weights
+    const warCount = timelineBefore.filter(e => e.type === "war").length;
+    const plagueCount = timelineBefore.filter(e => e.text.includes("Contagion") || e.text.includes("plague")).length;
+
+    // Apply simulation changes to the structural state metrics
+    ledger.treasuryDebt += warCount * 25;
+    ledger.prosperityIndex -= plagueCount * 30;
+    ledger.infrastructureLevel += Math.max(10, rand(10, 40));
+
+    // Dynamic Event Injector 1: National Debt Crisis
+    if (ledger.treasuryDebt > 40) {
+      const year = rand(foundingYear + 40, options.year - 15);
+      generatedEco.push({
+        year,
+        type: "economic",
+        title: "Sovereign Debt Crisis",
+        text: `Heavy expenditure during regional military mobilizations forced the crown of ${state.name} into severe compounding debt, collapsing their credit with foreign trade guilds.`
+      });
+      this.applyDemographicRipple(state, "war-casualty");
+    }
+
+    // Dynamic Event Injector 2: Trade Lane Expansion
+    if (ledger.prosperityIndex > 60 && ledger.treasuryDebt < 50) {
+      const year = rand(foundingYear + 60, options.year - 5);
+      generatedEco.push({
+        year,
+        type: "economic",
+        title: "Commercial Golden Route",
+        text: `With infrastructure ratings calculated at ${ledger.infrastructureLevel}, local merchant cartels capitalized on regional peace to firmly establish ${state.name} as a dominant hub exporting high-grade ${ledger.primaryExport}.`
+      });
+      this.applyDemographicRipple(state, "economic-boost");
+    }
+
+    return generatedEco;
   }
 
   // Iterates through memory matrix and applies adjustments directly into live map state array parameters
@@ -967,7 +1039,6 @@ class HistoryModule {
         text: () =>
           `A massive military sweep cleared the ancient trade routes of rogue bands, solidifying the domestic security of ${entityName}.`
       },
-      // --- Military & Expansion  ---
       {
         title: "The Iron Vanguard",
         text: () =>
@@ -1033,7 +1104,6 @@ class HistoryModule {
         text: () =>
           `Expeditions sent by ${entityName} secured the treacherous southern trade paths, erecting walled oases for passing caravans.`
       },
-      // --- Engineering, Architecture & Geography  ---
       {
         title: "The Grand Canal Project",
         text: () =>
@@ -1080,11 +1150,6 @@ class HistoryModule {
           `Deep catacombs and secure state treasuries were carved directly into the bedrock beneath the capital city to safeguard imperial wealth.`
       },
       {
-        title: "The Grand Canal Project",
-        text: () =>
-          `Engineers of ${entityName} successfully carved a massive canal network, linking the region's main river veins for unprecedented transit.`
-      },
-      {
         title: "Paved Imperial Highways",
         text: () =>
           `A sprawling network of stone-paved highways was laid down, connecting the distant frontiers directly to the heart of ${entityName}.`
@@ -1109,7 +1174,6 @@ class HistoryModule {
         text: () =>
           `Deep, bomb-proof subterranean vaults were carved beneath the capital of ${entityName} to house the collective wealth of the elite.`
       },
-      // --- Culture, Science & Intellectual Awakenings (21-30) ---
       {
         title: "Linguistic Standardization",
         text: () =>
@@ -1180,7 +1244,6 @@ class HistoryModule {
         text: () =>
           `The widespread adoption of a new crop-rotation and terrace-farming methodology tripled food production across the dry highlands.`
       },
-      // --- RULERS, DYNASTIES & POLITICS ---
       {
         title: "The Velvet Coup",
         text: () =>
@@ -1206,7 +1269,6 @@ class HistoryModule {
         text: () =>
           `The empire was divided into distinct administrative satrapies, granting local governors autonomy in exchange for absolute loyalty.`
       },
-      // --- Economy, Trade & Resource Control  ---
       {
         title: "The Silver Standardization",
         text: () =>
@@ -1257,7 +1319,6 @@ class HistoryModule {
         text: () =>
           `Land ownership laws were heavily restructured, taking massive swaths of property away from corrupt governors and distributing it to local communes.`
       },
-      // --- CONFLICT, REBELLION & SHIFTS ---
       {
         title: "The Bread Riots",
         text: () =>
@@ -1288,7 +1349,6 @@ class HistoryModule {
         text: () =>
           `Caravans from distant, unknown empires arrived at the gates of ${entityName}, creating a massive market for exotic textiles and spices.`
       },
-      // --- GOLDEN AGES & ECONOMIC EXUBERANCE ---
       {
         title: "The Maritime Bloom",
         text: () =>
@@ -1319,7 +1379,6 @@ class HistoryModule {
         text: () =>
           `A sweeping religious movement dedicated to solar worship became the official state religion of ${entityName}, altering the calendar.`
       },
-      // --- MYSTICISM, FAITH & SPIRITUAL MOVEMENTS ---
       {
         title: "The Great Iconoclasm",
         text: () =>
@@ -1385,7 +1444,6 @@ class HistoryModule {
         text: () =>
           `An unexpected solar eclipse sparked deep panic throughout ${entityName}, causing the state to dedicate massive resources toward appeasing the cosmic powers.`
       },
-      // --- ENVIRONMENT, NATURE & DISASTERS ---
       {
         title: "The Great Locust Swarm",
         text: () =>
@@ -1411,7 +1469,6 @@ class HistoryModule {
         text: () =>
           `An unseasonable summer freeze ruined crops across ${entityName}, sparking wide-scale migrations toward the warmer southern coasts.`
       },
-      // --- CRISES OF DECAY (LATE-ERA EVENT TEMPLATES) ---
       {
         title: "The Inflationary Spiral",
         text: () =>
@@ -1600,7 +1657,7 @@ class HistoryModule {
       memory.lastCatalystYear = year;
 
       events.push({
-        year: rand(foundingYear + 5, options.year),
+        year,
         type: "peace",
         title: "Defensive Pact",
         text: `${state.name} and ${pack.states[allyIndex].name} entered into a defensive pact, pledging to aid each other against common threats.`
