@@ -18,7 +18,6 @@ export type HistoricalEventType =
   | "rebellion"
   | "diplomacy_memory"; // New classification for targeted international relations context
 
-
 export interface HistoricalEvent {
   year: number;
   type: HistoricalEventType;
@@ -82,12 +81,10 @@ export interface WorldHistory {
 
 // Memory Matrix tracking point weights for dynamically overriding relationship standings
 interface DiplomaticMemoryScore {
-  historicalGrudges: number;     // Negative memory weight (wars, annexations)
-  historicalAccords: number;     // Positive memory weight (alliances, trade pacts)
+  historicalGrudges: number; // Negative memory weight (wars, annexations)
+  historicalAccords: number; // Positive memory weight (alliances, trade pacts)
   lastCatalystYear: number;
 }
-
-
 
 const EPITHETS: Record<string, string> = {
   "the Great": "expanded the realm's borders and is remembered as a unifying force",
@@ -433,8 +430,7 @@ const FIGURE_TEMPLATES: Record<FigureRole, string[]> = {
 };
 
 class HistoryModule {
-
-    // Direct Ledger caching relationship metrics across state pairings dynamically
+  // Direct Ledger caching relationship metrics across state pairings dynamically
   private diplomaticMemoryMatrix: Record<string, DiplomaticMemoryScore> = {};
 
   private getMemoryKey(idA: number, idB: number): string {
@@ -446,7 +442,6 @@ class HistoryModule {
     this.diplomaticMemoryMatrix[key] ??= { historicalGrudges: 0, historicalAccords: 0, lastCatalystYear: 0 };
     return this.diplomaticMemoryMatrix[key];
   }
-
 
   private ensureWorldHistory(): WorldHistory {
     pack.history ??= { activeGlobalEra: null, sharedWorldEvents: {} };
@@ -478,7 +473,6 @@ class HistoryModule {
       this.diplomaticMemoryMatrix = {}; // Reset global transactional memory banks
     }
 
-
     if (!this.activeGlobalEra || (isFullRun && regenerate)) {
       this.activeGlobalEra = ra(ANCIENT_ERAS);
     }
@@ -502,8 +496,6 @@ class HistoryModule {
     if (isFullRun) {
       this.synchronizeGeopoliticalDiplomacy();
     }
-
-
 
     TIME && console.timeEnd("generateHistory");
   }
@@ -537,8 +529,6 @@ class HistoryModule {
     state.history = events.sort((a, b) => b.year - a.year);
   }
 
-
-
   // Iterates through memory matrix and applies adjustments directly into live map state array parameters
   private synchronizeGeopoliticalDiplomacy(): void {
     pack.states.forEach(stateA => {
@@ -552,7 +542,7 @@ class HistoryModule {
         const memory = this.getMemory(stateA.i, stateB.i);
         const netBias = memory.historicalAccords - memory.historicalGrudges;
 
-        // Mutate real map values dynamically using weighted generational benchmarks 
+        // Mutate real map values dynamically using weighted generational benchmarks
         if (netBias <= -3) {
           diplomacy[stateB.i] = "Rival";
         } else if (netBias >= 3) {
@@ -563,7 +553,6 @@ class HistoryModule {
       });
     });
   }
-
 
   onStateRename(stateId: number): void {
     const state = pack.states[stateId];
@@ -1528,7 +1517,7 @@ class HistoryModule {
   }
 
   // Generates unique narrative timeline events directly explaining ongoing political alignments
-  private generateHistoricalMemoryFlavor(state: State, foundingYear: number): HistoricalEvent[] {
+  private generateHistoricalMemoryFlavor(state: State, _foundingYear: number): HistoricalEvent[] {
     const memoryEvents: HistoricalEvent[] = [];
 
     pack.states.forEach(targetState => {
