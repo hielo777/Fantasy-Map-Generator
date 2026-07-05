@@ -26,6 +26,7 @@ export interface HistoricalEvent {
 
 export interface Ruler {
   name: string;
+  house: string; // Tracks the formal dynastic lineage affiliation
   start: number;
   end: number;
   notable?: string;
@@ -389,11 +390,13 @@ class HistoryModule {
 
   private regenerateState(state: State): void {
     const foundingYear = this.getFoundingYear();
-    const rulers = this.generateDynasty(state, foundingYear);
+    
+    // Custom Structuring Capture: Returns both the dynasty lineage lists AND tracking shifts
+    const { rulers, dynasticShifts } = this.generateDynasty(state, foundingYear);
     state.rulers = rulers;
     state.rulers.sort((a, b) => b.start - a.start); 
 
-    const { events, figures } = this.buildTimeline(state, foundingYear, rulers);
+    const { events, figures } = this.buildTimeline(state, foundingYear, rulers, dynasticShifts);
     state.figures = figures.sort((a, b) => b.year - a.year); 
     state.history = events.sort((a, b) => b.year - a.year); 
   }
@@ -436,12 +439,10 @@ class HistoryModule {
     return options.year - offset;
   }
 
-  // Helper utility to fetch events occurring within a timeline frame
   private getEventsInWindow(events: HistoricalEvent[], start: number, end: number): HistoricalEvent[] {
     return events.filter(e => e.year >= start && e.year <= end);
   }
 
-  // Systemic mutation applicator to safely adjust map architecture parameters dynamically
   private applyDemographicRipple(state: State, type: "war-casualty" | "peace-boom" | "plague-loss" | "economic-boost") {
     const capitalBurg = pack.burgs[state.capital];
     
@@ -468,13 +469,14 @@ class HistoryModule {
   private buildTimeline(
     state: State,
     foundingYear: number,
-    rulers: Ruler[]
+    rulers: Ruler[],
+    dynasticShifts: HistoricalEvent[]
   ): { events: HistoricalEvent[]; figures: NotableFigure[] } {
-    // 1. Compile baseline recorded event buckets
     const recordedEvents: HistoricalEvent[] = [
       ...this.warEvents(state, foundingYear),
       ...this.diplomacyEvents(state, foundingYear),
-      ...this.flavorEvents(state, foundingYear)
+      ...this.flavorEvents(state, foundingYear),
+      ...dynasticShifts // Directly injects the custom succession civil wars into layout bounds
     ];
 
     const { events: figureEvents, figures } = this.figureEvents(state, foundingYear);
@@ -484,7 +486,6 @@ class HistoryModule {
       this.foundingEvent(state, foundingYear)
     ];
 
-    // 2. Dynamic Epithet Generation & Demographic Evaluation Pass
     const rulerEvents: HistoricalEvent[] = [];
 
     rulers.forEach(ruler => {
@@ -494,12 +495,16 @@ class HistoryModule {
       const peaceCount = reignEvents.filter(e => e.type === "peace").length;
       const disasterCount = reignEvents.filter(e => e.type === "disaster").length;
       const goldenAgeCount = reignEvents.filter(e => e.type === "golden-age").length;
+      const civilWarCount = reignEvents.filter(e => e.type === "rebellion" && e.title === "Succession Crisis").length;
 
       let dynamicEpithet = "";
       let legacySnippet = "";
 
-      // Dynamic achievement routing and map mutation triggers
-      if (warCount >= 2) {
+      if (civilWarCount >= 1) {
+        dynamicEpithet = "the Usurper";
+        legacySnippet = `ruthlessly seized power in the wake of succession chaos, spending much of their early reign executing rivals and forcing total militarization`;
+        this.applyDemographicRipple(state, "war-casualty");
+      } else if (warCount >= 2) {
         dynamicEpithet = "the Bold";
         legacySnippet = "led the nation through periods of intense military mobilization and grinding territorial conflict";
         this.applyDemographicRipple(state, "war-casualty");
@@ -519,9 +524,8 @@ class HistoryModule {
         legacySnippet = "oversaw a prolonged generation of absolute administrative stability and infrastructure continuity";
         this.applyDemographicRipple(state, "peace-boom");
       } else {
-        // Safe programmatic fallbacks mapping to standard descriptors if reign is uneventful
         dynamicEpithet = ruler.notable || (ruler.name.charCodeAt(0) % 2 === 0 ? "the Just" : "the Fair");
-        legacySnippet = `took the throne of ${state.name} and ${EPITHETS[dynamicEpithet] || "governed the territories with standard court decrees"}`;
+        legacySnippet = `took the throne of ${state.name} under ${ruler.house} and ${EPITHETS[dynamicEpithet] || "governed the territories with standard court decrees"}`;
       }
 
       ruler.notable = dynamicEpithet;
@@ -529,8 +533,8 @@ class HistoryModule {
       rulerEvents.push({
         year: ruler.start,
         type: "ruler",
-        title: `${ruler.name} ${ruler.notable}`,
-        text: `${ruler.name} ${ruler.notable} assumed control of the realm, presiding over an era that subsequently ${legacySnippet}.`
+        title: `${ruler.name} ${ruler.notable} (${ruler.house})`,
+        text: `${ruler.name} ${ruler.notable} of ${ruler.house} assumed control of the realm, presiding over an era that subsequently ${legacySnippet}.`
       });
     });
 
@@ -590,105 +594,511 @@ class HistoryModule {
     milestoneYears.sort((a, b) => a - b);
 
     const milestoneTemplates = [
-      { title: "Imperial Expansion", text: () => `${entityName} Pushed its borders to the natural horizons, subjugating surrounding clans and mapping the outer wilderness.` },
-      { title: "Great Monument Raised", text: () => `A grand capital city was constructed by ${entityName}, anchoring its power with monolithic architecture that would outlast its laws.` },
-      { title: "The Sovereign Succession", text: () => `A legendary dynasty took command of ${entityName}, centralizing bureaucratic control and codifying a strict primitive legal system.` },
-      { title: "Era of Enlightenment", text: () => `Scholars under ${entityName} perfected advanced early astronomical systems and agricultural techniques, prompting a massive population boom.` },
-      { title: "The Border Skirmishes", text: () => `Fringe territories of ${entityName} faced relentless incursions from early nomadic migrations, forcing the construction of defensive earthworks.` },
-      { title: "Internal Schism", text: () => `An intellectual and religious schism fractured the ruling elite of ${entityName}, leaving its administrative networks permanently fragile.` },
-      { title: "The Subjugation of Outlaws", text: () => `A massive military sweep cleared the ancient trade routes of rogue bands, solidifying the domestic security of ${entityName}.` },
-      { title: "The Iron Vanguard", text: () => `The military of ${entityName} standardized heavy armor tactics, creating an elite vanguard corps that won legendary victories.` },
-      { title: "Annexation of the Coastline", text: () => `${entityName} launched a sweeping campaign to absorb independent coastal fishing villages, creating its first true maritime frontier.` },
-      { title: "The Pacification Edict", text: () => `Following a series of brutal tribal border wars, the sovereign of ${entityName} signed a historic treaty that forcibly integrated defeated chieftains into the high council.` },
-      { title: "March of the Five Legions", text: () => `A massive expeditionary force was dispatched into the uncharted western expanses, establishing a chain of heavily fortified supply outposts.` },
-      { title: "The Sovereign's Bodyguard", text: () => `An elite, sworn order of warrior-monks was established to protect the rulers of ${entityName}, heavily influencing court politics for generations.` },
-      { title: "Fortress Network Completed", text: () => `Engineers completed an unbroken chain of watchtowers along the mountain passes, permanently securing the heartland of ${entityName}.` },
-      { title: "The Great Weapon Disarmament", text: () => `To prevent internal uprisings, ${entityName} issued a strict decree confiscating high-quality metal weapons from all non-state militias.` },
-      { title: "The Subjugation Wars", text: () => `Legions from ${entityName} launched a massive pacification campaign against rebellious frontier tribes, forcing heavy tribute.` },
-      { title: "Annexation of the Coast", text: () => `${entityName} systematically absorbed independent coastal fishing communities, turning them into high-volume naval shipyards.` },
-      { title: "Great Border Outposts", text: () => `A string of massive watchtowers and keeps was constructed along the outer rim of ${entityName} to monitor nomadic migrations.` },
-      { title: "The Sovereign Conquest", text: () => `A brilliant vanguard commander under ${entityName} annexed a wealthy neighboring river valley, doubling the empire's arable land.` },
-      { title: "The Iron Clampdown", text: () => `Following a period of instability, provincial legions enforced an absolute martial law across all major territories of ${entityName}.` },
-      { title: "The Desert Marches", text: () => `Expeditions sent by ${entityName} secured the treacherous southern trade paths, erecting walled oases for passing caravans.` },
-      { title: "The Grand Canal Project", text: () => `Thousands of laborers spent a decade carving a massive canal system, linking major river veins and transforming commerce within ${entityName}.` },
-      { title: "The Obsidian Highway", text: () => `A sprawling network of perfectly paved stone roads was completed, allowing messengers to traverse the length of ${entityName} in record time.` },
-      { title: "Deep-Earth Mining Boom", text: () => `Miners in the central crags struck a colossal vein of rare ores, fueling a rapid surge in primitive technological development across ${entityName}.` },
-      { title: "The Terraced Hills", text: () => `Massive landscape engineering reshaped the steep mountain valleys into highly productive terraced farms, drastically increasing food security.` },
-      { title: "The Great Aqueduct", text: () => `An engineering marvel of stone arches was raised to channel fresh glacial water directly into the expanding urban centers of ${entityName}.` },
-      { title: "Deforestation of the Wilds", text: () => `To meet the insatiable demand for fuel and timber, vast swaths of ancient primal forests were systematically cleared by imperial decree.` },
-      { title: "The Sinking Citadel", text: () => `A massive marshland fortress built by ${entityName} began slowly sinking into the mire, forcing a costly and complicated structural relocation.` },
-      { title: "The Great Bridge of Unity", text: () => `Architects bridged a treacherous river chasm, physically linking two historically hostile geographical regions of ${entityName}.` },
-      { title: "The Subterranean Vaults", text: () => `Deep catacombs and secure state treasuries were carved directly into the bedrock beneath the capital city to safeguard imperial wealth.` },
-      { title: "The Grand Canal Project", text: () => `Engineers of ${entityName} successfully carved a massive canal network, linking the region's main river veins for unprecedented transit.` },
-      { title: "Paved Imperial Highways", text: () => `A sprawling network of stone-paved highways was laid down, connecting the distant frontiers directly to the heart of ${entityName}.` },
-      { title: "The Colossal Aqueducts", text: () => `Massive stone aqueducts were erected across the valleys, supplying millions of gallons of fresh mountain water to the core cities.` },
-      { title: "The Great Foundry Built", text: () => `A mega-scale metallurgical foundry was established, standardizing the smelting of copper, bronze, and early iron tools across the realm.` },
-      { title: "The Citadel of Sages", text: () => `Construction wrapped on a monumental archive tower designed to store the ancestral genealogies and tax records of the entire population.` },
-      { title: "The Deep Vaults Excavated", text: () => `Deep, bomb-proof subterranean vaults were carved beneath the capital of ${entityName} to house the collective wealth of the elite.` },
-      { title: "Linguistic Standardization", text: () => `Sages collected regional dialects and codified a single official written script, permanently unifying the administrative records of ${entityName}.` },
-      { title: "The Celestial Calendar", text: () => `Astronomers in ${entityName} drafted an incredibly precise solar calendar, optimizing planting seasons and seasonal festivals across the empire.` },
-      { title: "The Great Census", text: () => `A massive bureaucratic undertaking successfully cataloged every village, livestock herd, and taxable family under the dominion of ${entityName}.` },
-      { title: "Founding of the High Lyceum", text: () => `An expansive sanctuary for natural philosophy and early medicine was established, drawing the finest minds of the ancient world.` },
-      { title: "The Botanical Registry", text: () => `Healers compiled a comprehensive master scroll detailing hundreds of medicinal herbs, dramatically increasing life expectancy in urban hubs.` },
-      { title: "The Cultural Migration", text: () => `An unprecedented wave of artists, poets, and musicians settled in the heartland, establishing ${entityName} as the definitive cultural jewel of the era.` },
-      { title: "The Great Code of Laws", text: () => `Legal scholars chiseled a definitive set of civil ordinances onto colossal stone tablets, establishing the concept of public judicial trials.` },
-      { title: "The Glassworks Discovery", text: () => `Artisans accidentally perfected primitive glass-blowing techniques, generating an incredibly lucrative and highly secretive luxury export industry.` },
-      { title: "The Golden Philosophy", text: () => `A profound philosophical movement swept the urban centers of ${entityName}, focusing on civic duty, logic, and architectural symmetry.` },
-      { title: "The Great Library Founded", text: () => `A decentralized council of sages gathered global scrolls into a central grand archive, making the capital a beacon of learning.` },
-      { title: "Standardization of Currencies", text: () => `Mint houses across ${entityName} began stamping unified gold and silver coins, drastically reducing market friction and boosting trade.` },
-      { title: "The Great Cartography Voyage", text: () => `A fleet of state-funded explorers returned to ${entityName} with definitive charts of the world's major oceans and continental edges.` },
-      { title: "The Epic of the Founders", text: () => `A master poet composed a legendary national epic detailing the mythic origin of ${entityName}, unifying its cultural identity.` },
-      { title: "Agricultural Revolution", text: () => `The widespread adoption of a new crop-rotation and terrace-farming methodology tripled food production across the dry highlands.` },
-      { title: "The Velvet Coup", text: () => `A quiet, bloodless shift in power occurred within the high councils of ${entityName}, replacing military rulers with wealthy civil administrators.` },
-      { title: "The Regency Crisis", text: () => `An infant monarch inherited the throne of ${entityName}, resulting in a chaotic decade where corrupt regents vied for shadow control.` },
-      { title: "The Lex Imperialis", text: () => `The legal scholars of ${entityName} completed a sweeping codification of laws, carving standard codes onto massive public stone tablets.` },
-      { title: "Edict of Tolerate", text: () => `To prevent a collapse, the crown of ${entityName} issued a decree granting equal citizenship and legal rights to conquered outer provinces.` },
-      { title: "The Council of satraps", text: () => `The empire was divided into distinct administrative satrapies, granting local governors autonomy in exchange for absolute loyalty.` },
-      { title: "The Silver Standardization", text: () => `${entityName} minted its very first uniform currency, completely replacing primitive barter systems across all provinces.` },
-      { title: "The Silk Road Treaty", text: () => `Diplomats secured a landmark trade agreement with distant foreign realms, inaugurating a legendary era of overland luxury trade.` },
-      { title: "The Great Grain Reserve", text: () => `To guard against cyclical droughts, ${entityName} built a sprawling network of state-managed granaries to store emergency food surpluses.` },
-      { title: "Monopoly of the Salt Mines", text: () => `The crown seized absolute ownership of all coastal and subterranean salt deposits, turning a basic necessity into the state's main revenue source.` },
-      { title: "The Merchant Guild Cartel", text: () => `A powerful syndicate of wealthy traders obtained exclusive royal charters, effectively acting as an auxiliary government within ${entityName}.` },
-      { title: "The Animal Domestication Surge", text: () => `The mass breeding of a highly resilient strain of draft beasts revolutionized heavy transport and field plowing across the territory.` },
-      { title: "The Great Fair of the Steppes", text: () => `An annual, month-long trade festival was established on the neutral borderlands, drawing diverse merchants from far beyond the empire's reach.` },
-      { title: "The Currency Debasement Crises", text: () => `Facing heavy military costs, the state reduced the precious metal content of its coinage, triggering massive economic inflation.` },
-      { title: "The Spice Influx", text: () => `The opening of a new southern shipping route flooded ${entityName} with exotic spices, profoundly changing local culinary traditions and preservation methods.` },
-      { title: "The Agrarian Reforms", text: () => `Land ownership laws were heavily restructured, taking massive swaths of property away from corrupt governors and distributing it to local communes.` },
-      { title: "The Bread Riots", text: () => `A sudden dip in crop yields caused mass panic in the capital of ${entityName}, resulting in widespread looting of the royal granaries.` },
-      { title: "The Taxpayer Mutiny", text: () => `Several wealthy outer trade hubs refused to send their yearly silver tithes, sparking a localized civil conflict within ${entityName}.` },
-      { title: "The Guild Wars", text: () => `Rival merchant networks within the empire turned to economic sabotage and street assassinations to control the flow of vital resources.` },
-      { title: "The Pretoria Mutiny", text: () => `The elite palace guard of ${entityName} staged a violent strike, demanding higher payouts and threatening the safety of the line of succession.` },
-      { title: "The Outlaw Coalition", text: () => `Exiled criminals and disenfranchised peasants pooled their strength to build a rogue, parallel micro-state inside the deep wilds.` },
-      { title: "The Great Trade Silk Road", text: () => `Caravans from distant, unknown empires arrived at the gates of ${entityName}, creating a massive market for exotic textiles and spices.` },
-      { title: "The Maritime Bloom", text: () => `Ship captains of ${entityName} established total hegemony over the commercial sea lanes, turning every local port into a bustling hub.` },
-      { title: "The Silver Influx", text: () => `The discovery of massive, unexpected silver veins in the mountains triggered an era of unmatched material wealth and luxury.` },
-      { title: "The Festival of Centuries", text: () => `${entityName} celebrated a major historical milestone with months of lavish public games, free grain distributions, and theatrical plays.` },
-      { title: "The Merchant Golden Age", text: () => `Private trading guilds accumulated so much wealth that they began directly financing the state's standing army and navy.` },
-      { title: "The Artisan Monopoly", text: () => `Craftsmen within ${entityName} perfected specialized glassblowing and pottery techniques, monopolizing the global luxury export trade.` },
-      { title: "Rise of the Sun Faith", text: () => `A sweeping religious movement dedicated to solar worship became the official state religion of ${entityName}, altering the calendar.` },
-      { title: "The Great Iconoclasm", text: () => `Religious zealots within ${entityName} destroyed centuries of primitive tribal art, replacing old idols with geometric stone shrines.` },
-      { title: "The Ascetic Migration", text: () => `Thousands of devout believers left the crowded cities of ${entityName} to build isolated, contemplative monasteries in the cliffs.` },
-      { title: "The Great Prophecy", text: () => `A renowned seer delivered a chilling, multi-generation prophecy that drastically altered the defensive military policies of ${entityName}.` },
-      { title: "The Orthodoxy Council", text: () => `High priests gathered in the capital to standardize holy texts, ruthlessly excommunicating alternative theological interpretations.` },
-      { title: "The Temple Construction Boom", text: () => `An era of deep piety resulted in over a third of the empire's internal tax revenue being diverted to building monumental holy complexes.` },
-      { title: "The Unearthing of Relics", text: () => `Excavations uncovered a cache of highly revered artifacts belonging to a progenitor culture, prompting a massive spiritual revival.` },
-      { title: "The Iconoclastic Purge", text: () => `A militant religious faction gained favor with the crown, launching a systemic campaign to destroy old tribal totems and shrines.` },
-      { title: "Rise of the Sun Pantheon", text: () => `Traditional local animist beliefs were slowly replaced by a highly organized, state-sponsored religion centered on solar worship.` },
-      { title: "The Heretic Uprising", text: () => `An outlawed spiritual sect organized a massive peasant revolt in the outer provinces, taking three elite legions to completely suppress.` },
-      { title: "The Pilgrim Trails", text: () => `A remote mountain shrine became a massive site of spiritual devotion, drawing tens of thousands of travelers across ${entityName} each spring.` },
-      { title: "The Translation of Scriptures", text: () => `Scribes spent a generation translating holy oral traditions into text, establishing a rigid religious orthodoxy.` },
-      { title: "The Holy War Edict", text: () => `Rulers declared a sacred campaign against an aggressive neighboring kingdom, framing the geopolitical struggle as a divine mandate.` },
-      { title: "The Eclipse Rituals", text: () => `An unexpected solar eclipse sparked deep panic throughout ${entityName}, causing the state to dedicate massive resources toward appeasing the cosmic powers.` },
-      { title: "The Great Locust Swarm", text: () => `A colossal insect migration stripped the eastern provinces of ${entityName} completely bare, forcing emergency grain rationing.` },
-      { title: "The Tremor of Old", text: () => `A violent earthquake shook the heartland, collapsing older mud-brick fortifications but prompting safer, smarter stone masonry standards.` },
-      { title: "The Decade of Mud", text: () => `Unprecedented, relentless rainfall caused massive mudslides along the hills, burying early frontier mining outposts under feet of earth.` },
-      { title: "The Shifting River Bed", text: () => `A major river vein naturally migrated over three miles away from a key trading city of ${entityName}, ruining its local harbor economy.` },
-      { title: "The Great Frost", text: () => `An unseasonable summer freeze ruined crops across ${entityName}, sparking wide-scale migrations toward the warmer southern coasts.` },
-      { title: "The Inflationary Spiral", text: () => `The deliberate debasement of gold coins by the treasury caused consumer confidence in ${entityName}'s currency to completely crater.` },
-      { title: "The Mercenary Reliance", text: () => `Faced with a declining citizen military pool, ${entityName} began hiring foreign mercenary groups to protect its borders.` },
-      { title: "The Bureaucratic Bloat", text: () => `The civil administrative ranks grew so large and corrupt that basic state decrees took months to pass through the regional courts.` },
-      { title: "The Great Decadence", text: () => `The ruling elite completely withdrew from military and agricultural management, spending fortunes on competitive palace architecture.` },
-      { title: "The Fractured Frontier", text: () => `Communication with the outermost satrapies broke down entirely, leaving remote local commanders to rule their zones as independent fiefdoms.` }
+      {
+        title: "Imperial Expansion",
+        text: () =>
+          `${entityName} Pushed its borders to the natural horizons, subjugating surrounding clans and mapping the outer wilderness.`
+      },
+      {
+        title: "Great Monument Raised",
+        text: () =>
+          `A grand capital city was constructed by ${entityName}, anchoring its power with monolithic architecture that would outlast its laws.`
+      },
+      {
+        title: "The Sovereign Succession",
+        text: () =>
+          `A legendary dynasty took command of ${entityName}, centralizing bureaucratic control and codifying a strict primitive legal system.`
+      },
+      {
+        title: "Era of Enlightenment",
+        text: () =>
+          `Scholars under ${entityName} perfected advanced early astronomical systems and agricultural techniques, prompting a massive population boom.`
+      },
+      {
+        title: "The Border Skirmishes",
+        text: () =>
+          `Fringe territories of ${entityName} faced relentless incursions from early nomadic migrations, forcing the construction of defensive earthworks.`
+      },
+      {
+        title: "Internal Schism",
+        text: () =>
+          `An intellectual and religious schism fractured the ruling elite of ${entityName}, leaving its administrative networks permanently fragile.`
+      },
+      {
+        title: "The Subjugation of Outlaws",
+        text: () =>
+          `A massive military sweep cleared the ancient trade routes of rogue bands, solidifying the domestic security of ${entityName}.`
+      },
+      // --- Military & Expansion  ---
+      {
+        title: "The Iron Vanguard",
+        text: () =>
+          `The military of ${entityName} standardized heavy armor tactics, creating an elite vanguard corps that won legendary victories.`
+      },
+      {
+        title: "Annexation of the Coastline",
+        text: () =>
+          `${entityName} launched a sweeping campaign to absorb independent coastal fishing villages, creating its first true maritime frontier.`
+      },
+      {
+        title: "The Pacification Edict",
+        text: () =>
+          `Following a series of brutal tribal border wars, the sovereign of ${entityName} signed a historic treaty that forcibly integrated defeated chieftains into the high council.`
+      },
+      {
+        title: "March of the Five Legions",
+        text: () =>
+          `A massive expeditionary force was dispatched into the uncharted western expanses, establishing a chain of heavily fortified supply outposts.`
+      },
+      {
+        title: "The Sovereign's Bodyguard",
+        text: () =>
+          `An elite, sworn order of warrior-monks was established to protect the rulers of ${entityName}, heavily influencing court politics for generations.`
+      },
+      {
+        title: "Fortress Network Completed",
+        text: () =>
+          `Engineers completed an unbroken chain of watchtowers along the mountain passes, permanently securing the heartland of ${entityName}.`
+      },
+      {
+        title: "The Great Weapon Disarmament",
+        text: () =>
+          `To prevent internal uprisings, ${entityName} issued a strict decree confiscating high-quality metal weapons from all non-state militias.`
+      },
+      {
+        title: "The Subjugation Wars",
+        text: () =>
+          `Legions from ${entityName} launched a massive pacification campaign against rebellious frontier tribes, forcing heavy tribute.`
+      },
+      {
+        title: "Annexation of the Coast",
+        text: () =>
+          `${entityName} systematically absorbed independent coastal fishing communities, turning them into high-volume naval shipyards.`
+      },
+      {
+        title: "Great Border Outposts",
+        text: () =>
+          `A string of massive watchtowers and keeps was constructed along the outer rim of ${entityName} to monitor nomadic migrations.`
+      },
+      {
+        title: "The Sovereign Conquest",
+        text: () =>
+          `A brilliant vanguard commander under ${entityName} annexed a wealthy neighboring river valley, doubling the empire's arable land.`
+      },
+      {
+        title: "The Iron Clampdown",
+        text: () =>
+          `Following a period of instability, provincial legions enforced an absolute martial law across all major territories of ${entityName}.`
+      },
+      {
+        title: "The Desert Marches",
+        text: () =>
+          `Expeditions sent by ${entityName} secured the treacherous southern trade paths, erecting walled oases for passing caravans.`
+      },
+      // --- Engineering, Architecture & Geography  ---
+      {
+        title: "The Grand Canal Project",
+        text: () =>
+          `Thousands of laborers spent a decade carving a massive canal system, linking major river veins and transforming commerce within ${entityName}.`
+      },
+      {
+        title: "The Obsidian Highway",
+        text: () =>
+          `A sprawling network of perfectly paved stone roads was completed, allowing messengers to traverse the length of ${entityName} in record time.`
+      },
+      {
+        title: "Deep-Earth Mining Boom",
+        text: () =>
+          `Miners in the central crags struck a colossal vein of rare ores, fueling a rapid surge in primitive technological development across ${entityName}.`
+      },
+      {
+        title: "The Terraced Hills",
+        text: () =>
+          `Massive landscape engineering reshaped the steep mountain valleys into highly productive terraced farms, drastically increasing food security.`
+      },
+      {
+        title: "The Great Aqueduct",
+        text: () =>
+          `An engineering marvel of stone arches was raised to channel fresh glacial water directly into the expanding urban centers of ${entityName}.`
+      },
+      {
+        title: "Deforestation of the Wilds",
+        text: () =>
+          `To meet the insatiable demand for fuel and timber, vast swaths of ancient primal forests were systematically cleared by imperial decree.`
+      },
+      {
+        title: "The Sinking Citadel",
+        text: () =>
+          `A massive marshland fortress built by ${entityName} began slowly sinking into the mire, forcing a costly and complicated structural relocation.`
+      },
+      {
+        title: "The Great Bridge of Unity",
+        text: () =>
+          `Architects bridged a treacherous river chasm, physically linking two historically hostile geographical regions of ${entityName}.`
+      },
+      {
+        title: "The Subterranean Vaults",
+        text: () =>
+          `Deep catacombs and secure state treasuries were carved directly into the bedrock beneath the capital city to safeguard imperial wealth.`
+      },
+      {
+        title: "The Grand Canal Project",
+        text: () =>
+          `Engineers of ${entityName} successfully carved a massive canal network, linking the region's main river veins for unprecedented transit.`
+      },
+      {
+        title: "Paved Imperial Highways",
+        text: () =>
+          `A sprawling network of stone-paved highways was laid down, connecting the distant frontiers directly to the heart of ${entityName}.`
+      },
+      {
+        title: "The Colossal Aqueducts",
+        text: () =>
+          `Massive stone aqueducts were erected across the valleys, supplying millions of gallons of fresh mountain water to the core cities.`
+      },
+      {
+        title: "The Great Foundry Built",
+        text: () =>
+          `A mega-scale metallurgical foundry was established, standardizing the smelting of copper, bronze, and early iron tools across the realm.`
+      },
+      {
+        title: "The Citadel of Sages",
+        text: () =>
+          `Construction wrapped on a monumental archive tower designed to store the ancestral genealogies and tax records of the entire population.`
+      },
+      {
+        title: "The Deep Vaults Excavated",
+        text: () =>
+          `Deep, bomb-proof subterranean vaults were carved beneath the capital of ${entityName} to house the collective wealth of the elite.`
+      },
+      // --- Culture, Science & Intellectual Awakenings (21-30) ---
+      {
+        title: "Linguistic Standardization",
+        text: () =>
+          `Sages collected regional dialects and codified a single official written script, permanently unifying the administrative records of ${entityName}.`
+      },
+      {
+        title: "The Celestial Calendar",
+        text: () =>
+          `Astronomers in ${entityName} drafted an incredibly precise solar calendar, optimizing planting seasons and seasonal festivals across the empire.`
+      },
+      {
+        title: "The Great Census",
+        text: () =>
+          `A massive bureaucratic undertaking successfully cataloged every village, livestock herd, and taxable family under the dominion of ${entityName}.`
+      },
+      {
+        title: "Founding of the High Lyceum",
+        text: () =>
+          `An expansive sanctuary for natural philosophy and early medicine was established, drawing the finest minds of the ancient world.`
+      },
+      {
+        title: "The Botanical Registry",
+        text: () =>
+          `Healers compiled a comprehensive master scroll detailing hundreds of medicinal herbs, dramatically increasing life expectancy in urban hubs.`
+      },
+      {
+        title: "The Cultural Migration",
+        text: () =>
+          `An unprecedented wave of artists, poets, and musicians settled in the heartland, establishing ${entityName} as the definitive cultural jewel of the era.`
+      },
+      {
+        title: "The Great Code of Laws",
+        text: () =>
+          `Legal scholars chiseled a definitive set of civil ordinances onto colossal stone tablets, establishing the concept of public judicial trials.`
+      },
+      {
+        title: "The Glassworks Discovery",
+        text: () =>
+          `Artisans accidentally perfected primitive glass-blowing techniques, generating an incredibly lucrative and highly secretive luxury export industry.`
+      },
+      {
+        title: "The Golden Philosophy",
+        text: () =>
+          `A profound philosophical movement swept the urban centers of ${entityName}, focusing on civic duty, logic, and architectural symmetry.`
+      },
+      {
+        title: "The Great Library Founded",
+        text: () =>
+          `A decentralized council of sages gathered global scrolls into a central grand archive, making the capital a beacon of learning.`
+      },
+      {
+        title: "Standardization of Currencies",
+        text: () =>
+          `Mint houses across ${entityName} began stamping unified gold and silver coins, drastically reducing market friction and boosting trade.`
+      },
+      {
+        title: "The Great Cartography Voyage",
+        text: () =>
+          `A fleet of state-funded explorers returned to ${entityName} with definitive charts of the world's major oceans and continental edges.`
+      },
+      {
+        title: "The Epic of the Founders",
+        text: () =>
+          `A master poet composed a legendary national epic detailing the mythic origin of ${entityName}, unifying its cultural identity.`
+      },
+      {
+        title: "Agricultural Revolution",
+        text: () =>
+          `The widespread adoption of a new crop-rotation and terrace-farming methodology tripled food production across the dry highlands.`
+      },
+      // --- RULERS, DYNASTIES & POLITICS ---
+      {
+        title: "The Velvet Coup",
+        text: () =>
+          `A quiet, bloodless shift in power occurred within the high councils of ${entityName}, replacing military rulers with wealthy civil administrators.`
+      },
+      {
+        title: "The Regency Crisis",
+        text: () =>
+          `An infant monarch inherited the throne of ${entityName}, resulting in a chaotic decade where corrupt regents vied for shadow control.`
+      },
+      {
+        title: "The Lex Imperialis",
+        text: () =>
+          `The legal scholars of ${entityName} completed a sweeping codification of laws, carving standard codes onto massive public stone tablets.`
+      },
+      {
+        title: "Edict of Tolerate",
+        text: () =>
+          `To prevent a collapse, the crown of ${entityName} issued a decree granting equal citizenship and legal rights to conquered outer provinces.`
+      },
+      {
+        title: "The Council of satraps",
+        text: () =>
+          `The empire was divided into distinct administrative satrapies, granting local governors autonomy in exchange for absolute loyalty.`
+      },
+      // --- Economy, Trade & Resource Control  ---
+      {
+        title: "The Silver Standardization",
+        text: () =>
+          `${entityName} minted its very first uniform currency, completely replacing primitive barter systems across all provinces.`
+      },
+      {
+        title: "The Silk Road Treaty",
+        text: () =>
+          `Diplomats secured a landmark trade agreement with distant foreign realms, inaugurating a legendary era of overland luxury trade.`
+      },
+      {
+        title: "The Great Grain Reserve",
+        text: () =>
+          `To guard against cyclical droughts, ${entityName} built a sprawling network of state-managed granaries to store emergency food surpluses.`
+      },
+      {
+        title: "Monopoly of the Salt Mines",
+        text: () =>
+          `The crown seized absolute ownership of all coastal and subterranean salt deposits, turning a basic necessity into the state's main revenue source.`
+      },
+      {
+        title: "The Merchant Guild Cartel",
+        text: () =>
+          `A powerful syndicate of wealthy traders obtained exclusive royal charters, effectively acting as an auxiliary government within ${entityName}.`
+      },
+      {
+        title: "The Animal Domestication Surge",
+        text: () =>
+          `The mass breeding of a highly resilient strain of draft beasts revolutionized heavy transport and field plowing across the territory.`
+      },
+      {
+        title: "The Great Fair of the Steppes",
+        text: () =>
+          `An annual, month-long trade festival was established on the neutral borderlands, drawing diverse merchants from far beyond the empire's reach.`
+      },
+      {
+        title: "The Currency Debasement Crises",
+        text: () =>
+          `Facing heavy military costs, the state reduced the precious metal content of its coinage, triggering massive economic inflation.`
+      },
+      {
+        title: "The Spice Influx",
+        text: () =>
+          `The opening of a new southern shipping route flooded ${entityName} with exotic spices, profoundly changing local culinary traditions and preservation methods.`
+      },
+      {
+        title: "The Agrarian Reforms",
+        text: () =>
+          `Land ownership laws were heavily restructured, taking massive swaths of property away from corrupt governors and distributing it to local communes.`
+      },
+      // --- CONFLICT, REBELLION & SHIFTS ---
+      {
+        title: "The Bread Riots",
+        text: () =>
+          `A sudden dip in crop yields caused mass panic in the capital of ${entityName}, resulting in widespread looting of the royal granaries.`
+      },
+      {
+        title: "The Taxpayer Mutiny",
+        text: () =>
+          `Several wealthy outer trade hubs refused to send their yearly silver tithes, sparking a localized civil conflict within ${entityName}.`
+      },
+      {
+        title: "The Guild Wars",
+        text: () =>
+          `Rival merchant networks within the empire turned to economic sabotage and street assassinations to control the flow of vital resources.`
+      },
+      {
+        title: "The Pretoria Mutiny",
+        text: () =>
+          `The elite palace guard of ${entityName} staged a violent strike, demanding higher payouts and threatening the safety of the line of succession.`
+      },
+      {
+        title: "The Outlaw Coalition",
+        text: () =>
+          `Exiled criminals and disenfranchised peasants pooled their strength to build a rogue, parallel micro-state inside the deep wilds.`
+      },
+      {
+        title: "The Great Trade Silk Road",
+        text: () =>
+          `Caravans from distant, unknown empires arrived at the gates of ${entityName}, creating a massive market for exotic textiles and spices.`
+      },
+      // --- GOLDEN AGES & ECONOMIC EXUBERANCE ---
+      {
+        title: "The Maritime Bloom",
+        text: () =>
+          `Ship captains of ${entityName} established total hegemony over the commercial sea lanes, turning every local port into a bustling hub.`
+      },
+      {
+        title: "The Silver Influx",
+        text: () =>
+          `The discovery of massive, unexpected silver veins in the mountains triggered an era of unmatched material wealth and luxury.`
+      },
+      {
+        title: "The Festival of Centuries",
+        text: () =>
+          `${entityName} celebrated a major historical milestone with months of lavish public games, free grain distributions, and theatrical plays.`
+      },
+      {
+        title: "The Merchant Golden Age",
+        text: () =>
+          `Private trading guilds accumulated so much wealth that they began directly financing the state's standing army and navy.`
+      },
+      {
+        title: "The Artisan Monopoly",
+        text: () =>
+          `Craftsmen within ${entityName} perfected specialized glassblowing and pottery techniques, monopolizing the global luxury export trade.`
+      },
+      {
+        title: "Rise of the Sun Faith",
+        text: () =>
+          `A sweeping religious movement dedicated to solar worship became the official state religion of ${entityName}, altering the calendar.`
+      },
+      // --- MYSTICISM, FAITH & SPIRITUAL MOVEMENTS ---
+      {
+        title: "The Great Iconoclasm",
+        text: () =>
+          `Religious zealots within ${entityName} destroyed centuries of primitive tribal art, replacing old idols with geometric stone shrines.`
+      },
+      {
+        title: "The Ascetic Migration",
+        text: () =>
+          `Thousands of devout believers left the crowded cities of ${entityName} to build isolated, contemplative monasteries in the cliffs.`
+      },
+      {
+        title: "The Great Prophecy",
+        text: () =>
+          `A renowned seer delivered a chilling, multi-generation prophecy that drastically altered the defensive military policies of ${entityName}.`
+      },
+      {
+        title: "The Orthodoxy Council",
+        text: () =>
+          `High priests gathered in the capital to standardize holy texts, ruthlessly excommunicating alternative theological interpretations.`
+      },
+      {
+        title: "The Temple Construction Boom",
+        text: () =>
+          `An era of deep piety resulted in over a third of the empire's internal tax revenue being diverted to building monumental holy complexes.`
+      },
+      {
+        title: "The Unearthing of Relics",
+        text: () =>
+          `Excavations uncovered a cache of highly revered artifacts belonging to a progenitor culture, prompting a massive spiritual revival.`
+      },
+      {
+        title: "The Iconoclastic Purge",
+        text: () =>
+          `A militant religious faction gained favor with the crown, launching a systemic campaign to destroy old tribal totems and shrines.`
+      },
+      {
+        title: "Rise of the Sun Pantheon",
+        text: () =>
+          `Traditional local animist beliefs were slowly replaced by a highly organized, state-sponsored religion centered on solar worship.`
+      },
+      {
+        title: "The Heretic Uprising",
+        text: () =>
+          `An outlawed spiritual sect organized a massive peasant revolt in the outer provinces, taking three elite legions to completely suppress.`
+      },
+      {
+        title: "The Pilgrim Trails",
+        text: () =>
+          `A remote mountain shrine became a massive site of spiritual devotion, drawing tens of thousands of travelers across ${entityName} each spring.`
+      },
+      {
+        title: "The Translation of Scriptures",
+        text: () =>
+          `Scribes spent a generation translating holy oral traditions into text, establishing a rigid religious orthodoxy.`
+      },
+      {
+        title: "The Holy War Edict",
+        text: () =>
+          `Rulers declared a sacred campaign against an aggressive neighboring kingdom, framing the geopolitical struggle as a divine mandate.`
+      },
+      {
+        title: "The Eclipse Rituals",
+        text: () =>
+          `An unexpected solar eclipse sparked deep panic throughout ${entityName}, causing the state to dedicate massive resources toward appeasing the cosmic powers.`
+      },
+      // --- ENVIRONMENT, NATURE & DISASTERS ---
+      {
+        title: "The Great Locust Swarm",
+        text: () =>
+          `A colossal insect migration stripped the eastern provinces of ${entityName} completely bare, forcing emergency grain rationing.`
+      },
+      {
+        title: "The Tremor of Old",
+        text: () =>
+          `A violent earthquake shook the heartland, collapsing older mud-brick fortifications but prompting safer, smarter stone masonry standards.`
+      },
+      {
+        title: "The Decade of Mud",
+        text: () =>
+          `Unprecedented, relentless rainfall caused massive mudslides along the hills, burying early frontier mining outposts under feet of earth.`
+      },
+      {
+        title: "The Shifting River Bed",
+        text: () =>
+          `A major river vein naturally migrated over three miles away from a key trading city of ${entityName}, ruining its local harbor economy.`
+      },
+      {
+        title: "The Great Frost",
+        text: () =>
+          `An unseasonable summer freeze ruined crops across ${entityName}, sparking wide-scale migrations toward the warmer southern coasts.`
+      },
+      // --- CRISES OF DECAY (LATE-ERA EVENT TEMPLATES) ---
+      {
+        title: "The Inflationary Spiral",
+        text: () =>
+          `The deliberate debasement of gold coins by the treasury caused consumer confidence in ${entityName}'s currency to completely crater.`
+      },
+      {
+        title: "The Mercenary Reliance",
+        text: () =>
+          `Faced with a declining citizen military pool, ${entityName} began hiring foreign mercenary groups to protect its borders.`
+      },
+      {
+        title: "The Bureaucratic Bloat",
+        text: () =>
+          `The civil administrative ranks grew so large and corrupt that basic state decrees took months to pass through the regional courts.`
+      },
+      {
+        title: "The Great Decadence",
+        text: () =>
+          `The ruling elite completely withdrew from military and agricultural management, spending fortunes on competitive palace architecture.`
+      },
+      {
+        title: "The Fractured Frontier",
+        text: () =>
+          `Communication with the outermost satrapies broke down entirely, leaving remote local commanders to rule their zones as independent fiefdoms.`
+      }
     ];
 
     milestoneYears.forEach(year => {
@@ -763,21 +1173,67 @@ class HistoryModule {
     return { year: foundingYear, type: "founding", title: `Founding of ${state.name}`, text };
   }
 
-  private generateDynasty(state: State, foundingYear: number): Ruler[] {
+  // Implements the Lineage Trailing, Surnames, and the 70/30 succession civil war ruleset
+  private generateDynasty(state: State, foundingYear: number): { rulers: Ruler[]; dynasticShifts: HistoricalEvent[] } {
     const rulers: Ruler[] = [];
+    const dynasticShifts: HistoricalEvent[] = [];
     let year = foundingYear;
+
+    // Local execution helper to fetch a brand-new cultural House identity name
+    const generateNewHouseName = (): string => `House ${Names.getCultureShort(state.culture)}`;
+    
+    let currentHouse = generateNewHouseName();
 
     while (year < options.year) {
       const reign = Math.max(1, gauss(19, 11, 1, 55));
       const end = Math.min(options.year, year + reign);
-      const notable = P(0.35) ? ra(Object.keys(EPITHETS)) : undefined;
+      
+      let notable = P(0.35) ? ra(Object.keys(EPITHETS)) : undefined;
+      const individualName = Names.getCulture(state.culture);
 
-      rulers.push({ name: Names.getCulture(state.culture), start: year, end, notable });
+      // Handle the 70% chance of succession continuity vs 30% Dynastic Shift ruleset
+      if (rulers.length > 0) {
+        if (P(0.30)) { // 30% Dynastic Shift Trigger
+          const previousHouse = currentHouse;
+          const previousRuler = rulers[rulers.length - 1];
+          currentHouse = generateNewHouseName();
+          
+          // Force Usurper status designation mapping directly to this event
+          notable = "the Usurper";
+
+          dynasticShifts.push({
+            year: year,
+            type: "rebellion",
+            title: "Succession Crisis",
+            text: `Following the passing of ${previousRuler.name}, the fall of ${previousHouse} allowed the usurpers of ${currentHouse} to seize the high seat, plunging the realm into succession chaos.`
+          });
+
+          // Implement direct systemic demographic penalty side-effects from civil war instability
+          this.applyDemographicRipple(state, "war-casualty");
+        }
+      }
+
+      rulers.push({
+        name: individualName,
+        house: currentHouse,
+        start: year,
+        end,
+        notable
+      });
+
       year = end;
     }
 
-    if (!rulers.length) rulers.push({ name: Names.getCulture(state.culture), start: foundingYear, end: options.year });
-    return rulers;
+    if (!rulers.length) {
+      rulers.push({ 
+        name: Names.getCulture(state.culture), 
+        house: currentHouse, 
+        start: foundingYear, 
+        end: options.year 
+      });
+    }
+
+    return { rulers, dynasticShifts };
   }
 
   private warEvents(state: State, foundingYear: number): HistoricalEvent[] {
@@ -902,7 +1358,6 @@ class HistoryModule {
           title: globalEvent.title,
           text: globalEvent.descriptions[state.i]
         });
-        // Macro structural population collapse applied systemically
         this.applyDemographicRipple(state, "plague-loss");
 
       } else if (globalEvent.title === "The Great Currency Crash") {
@@ -913,7 +1368,6 @@ class HistoryModule {
           title: globalEvent.title,
           text: globalEvent.descriptions[state.i]
         });
-        // Economic collapse ripples applied systemically
         this.applyDemographicRipple(state, "war-casualty");
       }
     });
@@ -924,7 +1378,6 @@ class HistoryModule {
       const year = rand(foundingYear + 5, Math.max(foundingYear + 6, options.year - 2));
       events.push({ year, type, title, text: text(state, religion) });
       
-      // Hook native random macro flavor events to dynamic simulation ripples
       if (type === "golden-age") this.applyDemographicRipple(state, "peace-boom");
       if (type === "disaster" || type === "rebellion") this.applyDemographicRipple(state, "war-casualty");
     }
