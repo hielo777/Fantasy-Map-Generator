@@ -62,7 +62,7 @@ export interface NotableFigure {
 }
 
 // Relational narrative injector templates mapping dynamic connections
-const RELATIONAL_TEMPLATES: Record<FigureRole, Partial<Record<FigureRole, string[]>>> = {
+const _RELATIONAL_TEMPLATES: Record<FigureRole, Partial<Record<FigureRole, string[]>>> = {
   Spymaster: {
     "Rebel Leader": [
       "constructed an invisible shadow network tasked entirely with hunting down the remnants of {target}'s partisan cell.",
@@ -579,7 +579,7 @@ class HistoryModule {
 
   private regenerateState(state: State): void {
     const foundingYear = this.getFoundingYear();
-    
+
     // Initialize the dynamic cultural tracker with the state's map-assigned starting culture
     const demographics: CulturalDemographics = {
       primaryCultureId: state.culture,
@@ -587,22 +587,32 @@ class HistoryModule {
     };
 
     // Step 1: Generate the dynasty, passing the demographic tracker so usurpations can introduce foreign bloodlines
-    const { rulers, dynasticShifts, updatedDemographics } = this.generateDynastyWithCulture(state, foundingYear, demographics);
+    const { rulers, dynasticShifts, updatedDemographics } = this.generateDynastyWithCulture(
+      state,
+      foundingYear,
+      demographics
+    );
     state.rulers = rulers;
-    state.rulers.sort((a, b) => b.start - a.start); 
+    state.rulers.sort((a, b) => b.start - a.start);
 
     // Step 2: Build the timeline, passing the dynamic demographics which will mutate over time based on wars and alliances
-    const { events, figures } = this.buildTimelineWithCulture(state, foundingYear, rulers, dynasticShifts, updatedDemographics);
-    state.figures = figures.sort((a, b) => b.year - a.year); 
-    state.history = events.sort((a, b) => b.year - a.year); 
+    const { events, figures } = this.buildTimelineWithCulture(
+      state,
+      foundingYear,
+      rulers,
+      dynasticShifts,
+      updatedDemographics
+    );
+    state.figures = figures.sort((a, b) => b.year - a.year);
+    state.history = events.sort((a, b) => b.year - a.year);
 
     // Step 3: Write the final mutated culture back to the live global state object so the rest of the map reacts to the shift
     state.culture = updatedDemographics.primaryCultureId;
   }
 
   private generateDynastyWithCulture(
-    state: State, 
-    foundingYear: number, 
+    state: State,
+    foundingYear: number,
     demographics: CulturalDemographics
   ): { rulers: Ruler[]; dynasticShifts: HistoricalEvent[]; updatedDemographics: CulturalDemographics } {
     const rulers: Ruler[] = [];
@@ -616,24 +626,25 @@ class HistoryModule {
     while (year < options.year) {
       const reign = Math.max(1, gauss(19, 11, 1, 55));
       const end = Math.min(options.year, year + reign);
-      
+
       let notable = P(0.35) ? ra(Object.keys(EPITHETS)) : undefined;
-      
+
       // Pull names dynamically from the current dominant house culture rather than a static state value
       const individualName = Names.getCulture(currentHouseCulture);
 
-      if (rulers.length > 0 && P(0.30)) { 
+      if (rulers.length > 0 && P(0.3)) {
         const previousHouse = currentHouse;
         const previousRuler = rulers[rulers.length - 1];
-        
+
         // Succession Crisis: 25% chance the new usurping house belongs to a neighboring state's culture
         const neighborStates = pack.states.filter(s => s.i && !s.removed && s.i !== state.i && state.diplomacy?.[s.i]);
         if (neighborStates.length > 0 && P(0.25)) {
           const foreignState = ra(neighborStates);
           currentHouseCulture = foreignState.culture;
-          
+
           // Inject weight into the demographic matrix for the foreign culture
-          demographics.influenceWeights[currentHouseCulture] = (demographics.influenceWeights[currentHouseCulture] || 0) + 40;
+          demographics.influenceWeights[currentHouseCulture] =
+            (demographics.influenceWeights[currentHouseCulture] || 0) + 40;
         } else {
           currentHouseCulture = demographics.primaryCultureId;
         }
@@ -662,7 +673,12 @@ class HistoryModule {
     }
 
     if (!rulers.length) {
-      rulers.push({ name: Names.getCulture(currentHouseCulture), house: currentHouse, start: foundingYear, end: options.year });
+      rulers.push({
+        name: Names.getCulture(currentHouseCulture),
+        house: currentHouse,
+        start: foundingYear,
+        end: options.year
+      });
     }
 
     return { rulers, dynasticShifts, updatedDemographics: demographics };
@@ -671,11 +687,10 @@ class HistoryModule {
   private buildTimelineWithCulture(
     state: State,
     foundingYear: number,
-    rulers: Ruler[],
+    _rulers: Ruler[],
     dynasticShifts: HistoricalEvent[],
     demographics: CulturalDemographics
   ): { events: HistoricalEvent[]; figures: NotableFigure[] } {
-    
     // Core structural event logs
     const recordedEvents: HistoricalEvent[] = [
       ...this.warEvents(state, foundingYear),
@@ -687,10 +702,10 @@ class HistoryModule {
 
     // Evaluate geopolitical culture pressure dynamically based on timeline events
     const culturalFractureEvents: HistoricalEvent[] = [];
-    
+
     // Sort events chronologically to simulate progressive demographic drift
     const chronologicalEvents = [...recordedEvents].sort((a, b) => a.year - b.year);
-    
+
     chronologicalEvents.forEach(event => {
       // Rule 1: Prolonged alliances or vassalage cause creeping cultural integration
       if (event.type === "peace" && event.title === "Defensive Pact") {
@@ -713,19 +728,22 @@ class HistoryModule {
       // Check for an absolute cultural fracture/flip threshold
       for (const [cultureIdStr, weight] of Object.entries(demographics.influenceWeights)) {
         const cultureId = Number(cultureIdStr);
-        if (cultureId !== demographics.primaryCultureId && weight > demographics.influenceWeights[demographics.primaryCultureId]) {
+        if (
+          cultureId !== demographics.primaryCultureId &&
+          weight > demographics.influenceWeights[demographics.primaryCultureId]
+        ) {
           const oldCultureName = pack.cultures[demographics.primaryCultureId]?.name || "the old ways";
           const newCultureName = pack.cultures[cultureId]?.name || "foreign ways";
-          
+
           demographics.primaryCultureId = cultureId; // Dynamic Shift Triggered!
-          
+
           culturalFractureEvents.push({
             year: event.year + 2,
             type: "religious", // Repurposed for general societal/cultural shifts
             title: "Cultural Fracture",
             text: `The systemic integration of foreign traditions reached a tipping point. The historic customs of ${oldCultureName} have fractured, and the state has fundamentally assimilated into the cultural sphere of ${newCultureName}.`
           });
-          
+
           // Re-balance scales around the new dominant baseline
           demographics.influenceWeights[cultureId] = 100;
           break;
@@ -738,7 +756,7 @@ class HistoryModule {
 
     // Generate figures, ensuring they use the running dynamic primary culture context adjusted for chronological placement
     const { events: figureEvents, figures } = this.figureEventsWithDynamicCulture(state, foundingYear, demographics);
-    
+
     // FIX: Generate the actual legendary and founding events array
     const legendaryEvents: HistoricalEvent[] = [
       ...this.legendaryEvents(state, foundingYear),
@@ -755,21 +773,21 @@ class HistoryModule {
   }
 
   private figureEventsWithDynamicCulture(
-    state: State, 
+    state: State,
     foundingYear: number,
     demographics: CulturalDemographics
   ): { events: HistoricalEvent[]; figures: NotableFigure[] } {
     const roles = Object.keys(FIGURE_TEMPLATES) as FigureRole[];
-    const count = rand(12, 32); 
+    const count = rand(12, 32);
     const figures: NotableFigure[] = [];
     const events: HistoricalEvent[] = [];
 
     for (let i = 0; i < count; i++) {
       const year = rand(foundingYear + 10, Math.max(foundingYear + 11, options.year - 2));
       const role = ra(roles);
-      
+
       // Determine what culture was globally dominant in the state at the exact time this figure was born
-      const activeCulture = demographics.primaryCultureId; 
+      const activeCulture = demographics.primaryCultureId;
       const name = Names.getCulture(activeCulture);
 
       const values: FigureValues = {
@@ -850,10 +868,6 @@ class HistoryModule {
     return options.year - offset;
   }
 
-  private getEventsInWindow(events: HistoricalEvent[], start: number, end: number): HistoricalEvent[] {
-    return events.filter(e => e.year >= start && e.year <= end);
-  }
-
   private applyDemographicRipple(state: State, type: "war-casualty" | "peace-boom" | "plague-loss" | "economic-boost") {
     const capitalBurg = pack.burgs[state.capital];
 
@@ -875,96 +889,6 @@ class HistoryModule {
         state.rural = Math.round(state.rural * 1.05);
         break;
     }
-  }
-
-  private buildTimeline(
-    state: State,
-    foundingYear: number,
-    rulers: Ruler[],
-    dynasticShifts: HistoricalEvent[]
-  ): { events: HistoricalEvent[]; figures: NotableFigure[] } {
-    const recordedEvents: HistoricalEvent[] = [
-      ...this.warEvents(state, foundingYear),
-      ...this.diplomacyEvents(state, foundingYear),
-      ...this.flavorEvents(state, foundingYear),
-      ...dynasticShifts, // Directly injects the custom succession civil wars into layout bounds
-      ...this.generateHistoricalMemoryFlavor(state, foundingYear) // Injects targeted memory logs explicitly
-    ];
-
-    const { events: figureEvents, figures } = this.figureEvents(state, foundingYear);
-
-    const legendaryEvents: HistoricalEvent[] = [
-      ...this.legendaryEvents(state, foundingYear),
-      this.foundingEvent(state, foundingYear)
-    ];
-
-    const rulerEvents: HistoricalEvent[] = [];
-
-    rulers.forEach(ruler => {
-      const reignEvents = this.getEventsInWindow(recordedEvents, ruler.start, ruler.end);
-
-      const warCount = reignEvents.filter(e => e.type === "war").length;
-      const peaceCount = reignEvents.filter(e => e.type === "peace").length;
-      const disasterCount = reignEvents.filter(e => e.type === "disaster").length;
-      const goldenAgeCount = reignEvents.filter(e => e.type === "golden-age").length;
-      const civilWarCount = reignEvents.filter(e => e.type === "rebellion" && e.title === "Succession Crisis").length;
-
-      let dynamicEpithet = "";
-      let legacySnippet = "";
-
-      if (civilWarCount >= 1) {
-        dynamicEpithet = "the Usurper";
-        legacySnippet = `ruthlessly seized power in the wake of succession chaos, spending much of their early reign executing rivals and forcing total militarization`;
-        this.applyDemographicRipple(state, "war-casualty");
-      } else if (warCount >= 2) {
-        dynamicEpithet = "the Bold";
-        legacySnippet =
-          "led the nation through periods of intense military mobilization and grinding territorial conflict";
-        this.applyDemographicRipple(state, "war-casualty");
-      } else if (peaceCount >= 2 || goldenAgeCount >= 1) {
-        dynamicEpithet = "the Wise";
-        legacySnippet = "ushered in an epoch of unprecedented prosperity, architectural planning, and domestic harmony";
-        this.applyDemographicRipple(state, "peace-boom");
-      } else if (disasterCount >= 1) {
-        const containsPlague = reignEvents.some(e => e.title.includes("Plague") || e.title.includes("Contagion"));
-        dynamicEpithet = "the Unlucky";
-        legacySnippet = containsPlague
-          ? "struggled heavily to maintain institutional authority amidst devastating structural plague losses"
-          : "presided over a troubled administration struck by extreme hardships and severe resource scarcity";
-        this.applyDemographicRipple(state, containsPlague ? "plague-loss" : "war-casualty");
-      } else if (ruler.end - ruler.start > 40) {
-        dynamicEpithet = "the Ancient";
-        legacySnippet =
-          "oversaw a prolonged generation of absolute administrative stability and infrastructure continuity";
-        this.applyDemographicRipple(state, "peace-boom");
-      } else {
-        dynamicEpithet = ruler.notable || (ruler.name.charCodeAt(0) % 2 === 0 ? "the Just" : "the Fair");
-        legacySnippet = `took the throne of ${state.name} under ${ruler.house} and ${EPITHETS[dynamicEpithet] || "governed the territories with standard court decrees"}`;
-      }
-
-      ruler.notable = dynamicEpithet;
-
-      rulerEvents.push({
-        year: ruler.start,
-        type: "ruler",
-        title: `${ruler.name} ${ruler.notable} (${ruler.house})`,
-        text: `${ruler.name} ${ruler.notable} of ${ruler.house} assumed control of the realm, presiding over an era that subsequently ${legacySnippet}.`
-      });
-    });
-
-    const sortDescending = (a: HistoricalEvent, b: HistoricalEvent) => b.year - a.year;
-
-    recordedEvents.sort(sortDescending);
-    rulerEvents.sort(sortDescending);
-    figureEvents.sort(sortDescending);
-    legendaryEvents.sort(sortDescending);
-
-    const events = [...recordedEvents, ...rulerEvents, ...figureEvents, ...legendaryEvents];
-
-    state.figures = figures.sort((a, b) => b.year - a.year);
-    state.history = events;
-
-    return { events, figures };
   }
 
   private legendaryEvents(state: State, foundingYear: number): HistoricalEvent[] {
@@ -1590,70 +1514,6 @@ class HistoryModule {
     return { year: foundingYear, type: "founding", title: `Founding of ${state.name}`, text };
   }
 
-  // Implements the Lineage Trailing, Surnames, and the 70/30 succession civil war ruleset
-  private generateDynasty(state: State, foundingYear: number): { rulers: Ruler[]; dynasticShifts: HistoricalEvent[] } {
-    const rulers: Ruler[] = [];
-    const dynasticShifts: HistoricalEvent[] = [];
-    let year = foundingYear;
-
-    // Local execution helper to fetch a brand-new cultural House identity name
-    const generateNewHouseName = (): string => `House ${Names.getCultureShort(state.culture)}`;
-
-    let currentHouse = generateNewHouseName();
-
-    while (year < options.year) {
-      const reign = Math.max(1, gauss(19, 11, 1, 55));
-      const end = Math.min(options.year, year + reign);
-
-      let notable = P(0.35) ? ra(Object.keys(EPITHETS)) : undefined;
-      const individualName = Names.getCulture(state.culture);
-
-      // Handle the 70% chance of succession continuity vs 30% Dynastic Shift ruleset
-      if (rulers.length > 0) {
-        if (P(0.3)) {
-          // 30% Dynastic Shift Trigger
-          const previousHouse = currentHouse;
-          const previousRuler = rulers[rulers.length - 1];
-          currentHouse = generateNewHouseName();
-
-          // Force Usurper status designation mapping directly to this event
-          notable = "the Usurper";
-
-          dynasticShifts.push({
-            year: year,
-            type: "rebellion",
-            title: "Succession Crisis",
-            text: `Following the passing of ${previousRuler.name}, the fall of ${previousHouse} allowed the usurpers of ${currentHouse} to seize the high seat, plunging the realm into succession chaos.`
-          });
-
-          // Implement direct systemic demographic penalty side-effects from civil war instability
-          this.applyDemographicRipple(state, "war-casualty");
-        }
-      }
-
-      rulers.push({
-        name: individualName,
-        house: currentHouse,
-        start: year,
-        end,
-        notable
-      });
-
-      year = end;
-    }
-
-    if (!rulers.length) {
-      rulers.push({
-        name: Names.getCulture(state.culture),
-        house: currentHouse,
-        start: foundingYear,
-        end: options.year
-      });
-    }
-
-    return { rulers, dynasticShifts };
-  }
-
   private warEvents(state: State, foundingYear: number): HistoricalEvent[] {
     const events: HistoricalEvent[] = [];
 
@@ -1852,81 +1712,6 @@ class HistoryModule {
     }
 
     return events;
-  }
-
-  private figureEvents(state: State, foundingYear: number): { events: HistoricalEvent[]; figures: NotableFigure[] } {
-    const roles = Object.keys(FIGURE_TEMPLATES) as FigureRole[];
-    const count = rand(12, 32);
-
-    const values: FigureValues = {
-      state: state.name,
-      capital: pack.burgs[state.capital]?.name || state.name,
-      culture: pack.cultures[state.culture]?.name,
-      religion: pack.religions[pack.cells.religion[state.center]]?.name
-    };
-
-    const figures: NotableFigure[] = [];
-    const events: HistoricalEvent[] = [];
-
-    // Order generations chronologically to ensure future characters can safely look back at the past
-    for (let i = 0; i < count; i++) {
-      const year = rand(foundingYear + 10, Math.max(foundingYear + 11, options.year - 2));
-      const role = ra(roles);
-      const name = Names.getCulture(state.culture);
-
-      const campaign =
-        role === "General"
-          ? (state.campaigns || []).find(c => c.start <= year && (c.end ?? options.year) >= year)
-          : undefined;
-
-      // Scanning window: Find a historical figure who lived within the last 50 years to anchor to
-      const anchor = figures.find(f => f.year < year && year - f.year <= 50);
-      let text = "";
-      let relationData: NotableFigure["relation"];
-
-      if (anchor && RELATIONAL_TEMPLATES[role]?.[anchor.role] && P(0.45)) {
-        // Relational branch triggered: Inject contextual webbing text
-        const templates = RELATIONAL_TEMPLATES[role][anchor.role]!;
-        const template = ra(templates)
-          .replace(/{target}/g, anchor.name)
-          .replace(/{capital}/g, values.capital)
-          .replace(/{state}/g, values.state);
-
-        text = `${name}, ${template}`;
-
-        // Define relation structural details for UI tooltips or downstream event checks
-        const relationshipTypes: Record<FigureRole, NotableFigure["relation"]["type"]> = {
-          Spymaster: "nemesis",
-          General: "successor",
-          "Rebel Leader": "rival",
-          Philosopher: "disciple",
-          Outcast: "descendant",
-          "Religious Figure": "successor",
-          Inventor: "successor",
-          Commoner: "rival",
-          Explorer: "successor",
-          Artist: "disciple",
-          "Merchant Magnate": "rival",
-          Healer: "disciple",
-          Architect: "successor"
-        };
-
-        relationData = {
-          targetName: anchor.name,
-          targetRole: anchor.role,
-          type: relationshipTypes[role] || "successor"
-        };
-      } else {
-        // Fallback to standard generation if no anchor fits the rolling narrative window
-        text = this.figureText(role, name, { ...values, campaign: campaign?.name });
-      }
-
-      const newFigure: NotableFigure = { name, role, year, text, relation: relationData };
-      figures.push(newFigure);
-      events.push({ year, type: "figure", title: `${name}, ${role}`, text });
-    }
-
-    return { events, figures };
   }
 
   private figureText(role: FigureRole, name: string, values: FigureValues): string {
