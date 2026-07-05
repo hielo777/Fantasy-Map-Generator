@@ -819,7 +819,7 @@ class HistoryModule {
   }
 
   // EconomicLedger: track baseline resources and compute dynamic economic anomalies based on historical events
-  private initializeEconomicLedger(state: State): EconomicLedger {
+  private initializeEconomicLedger(_state: State): EconomicLedger {
     // Determine baseline export based on primary biome or state traits
     const defaultExports = ["Grain", "Timber", "Iron Ore", "Textiles", "Spices"];
     const baseExport = ra(defaultExports);
