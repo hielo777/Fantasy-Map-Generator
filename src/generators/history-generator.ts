@@ -798,20 +798,71 @@ class HistoryModule {
     for (let i = 0; i < count; i++) {
       const year = rand(foundingYear + 10, Math.max(foundingYear + 11, options.year - 2));
       const role = ra(roles);
-
-      // Determine what culture was globally dominant in the state at the exact time this figure was born
       const activeCulture = demographics.primaryCultureId;
       const name = Names.getCulture(activeCulture);
+
+      // Check for an active campaign during the figure's timeframe if they are a General
+      const campaign =
+        role === "General"
+          ? (state.campaigns || []).find(c => c.start <= year && (c.end ?? options.year) >= year)
+          : undefined;
 
       const values: FigureValues = {
         state: state.name,
         capital: pack.burgs[state.capital]?.name || state.name,
         culture: pack.cultures[activeCulture]?.name,
-        religion: pack.religions[pack.cells.religion[state.center]]?.name
+        religion: pack.religions[pack.cells.religion[state.center]]?.name,
+        campaign: campaign?.name
       };
 
-      const text = this.figureText(role, name, values);
-      figures.push({ name, role, year, text });
+      let relationData: NotableFigure["relation"] = undefined;
+      let text = "";
+
+      // Relational Engine: Look for a preceding historical figure to tie down a narrative link
+      // We look for characters born 15 to 70 years prior to establish logical timeline pacing
+      const anchor = figures.find(f => f.year < year && year - f.year >= 15 && year - f.year <= 70);
+
+      const roleTemplates = _RELATIONAL_TEMPLATES[role];
+      const templateList = anchor && roleTemplates ? roleTemplates[anchor.role] : undefined;
+
+      if (anchor && templateList && templateList.length > 0 && P(0.4)) {
+        // Build relational text line from templates
+        const chosenTemplate = ra(templateList);
+        text = `${name} ${chosenTemplate.replace(/{target}/g, anchor.name).replace(/{capital}/g, values.capital)}`;
+
+        // Map reciprocal structural relationship classifications cleanly
+        const relationshipTypes: Record<FigureRole, NotableFigure["relation"]["type"]> = {
+          Philosopher: "disciple",
+          Inventor: "successor",
+          "Rebel Leader": "nemesis",
+          "Religious Figure": "disciple",
+          Commoner: "rival",
+          Explorer: "successor",
+          Artist: "disciple",
+          "Merchant Magnate": "rival",
+          Spymaster: "rival",
+          Healer: "disciple",
+          General: "successor",
+          Architect: "successor",
+          Outcast: "descendant"
+        };
+
+        relationData = {
+          targetName: anchor.name,
+          targetRole: anchor.role,
+          type: relationshipTypes[role] || "successor"
+        };
+      } else {
+        // Fallback to traditional context-driven generation if no logical legacy match fits
+        text = this.figureText(role, name, values);
+      }
+
+      const newFigure: NotableFigure = { name, role, year, text };
+      if (relationData) {
+        newFigure.relation = relationData;
+      }
+
+      figures.push(newFigure);
       events.push({ year, type: "figure", title: `${name}, ${role}`, text });
     }
 
