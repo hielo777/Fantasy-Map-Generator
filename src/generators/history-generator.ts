@@ -720,7 +720,7 @@ class HistoryModule {
           const allyCulture = pack.states[allyIndex].culture;
           demographics.influenceWeights[allyCulture] = (demographics.influenceWeights[allyCulture] || 0) + 15;
         }
-      }
+      } 
 
       // Rule 2: Subjugation drastically accelerates foreign cultural enforcement
       if (event.type === "war" && event.title === "Vassalization") {
@@ -764,6 +764,10 @@ class HistoryModule {
     // Merge the cultural shift logs back into the general timeline array
     recordedEvents.push(...culturalFractureEvents);
 
+    // INJECT RELIGIOUS GEOPOLITICS HERE
+    const religiousConflicts = this.processReligiousGeopolitics(state, foundingYear, recordedEvents);
+    recordedEvents.push(...religiousConflicts);
+
     // FIX: Process and run the timeline through the economic analyzer, then merge the dynamic records into the core array
     const ecoEvents = this.economicEvents(state, foundingYear, ledger, recordedEvents);
     recordedEvents.push(...ecoEvents);
@@ -779,6 +783,8 @@ class HistoryModule {
 
     // Process rulers & apply final contextual text mappings as normal
     const rulerEvents: HistoricalEvent[] = [];
+
+
 
     // Combine all compiled historical sub-arrays into the complete return sequence
     const events = [...recordedEvents, ...rulerEvents, ...figureEvents, ...legendaryEvents];
@@ -815,7 +821,7 @@ class HistoryModule {
         campaign: campaign?.name
       };
 
-      let relationData: NotableFigure["relation"] = undefined;
+      let relationData: NotableFigure["relation"];
       let text = "";
 
       // Relational Engine: Look for a preceding historical figure to tie down a narrative link
@@ -1836,6 +1842,69 @@ class HistoryModule {
     const joiner = role === "Commoner" ? ", " : " ";
     return `${name}${joiner}${template}`;
   }
+
+  // Core processor for analyzing inter-state religious friction or synchronization
+  private processReligiousGeopolitics(state: State, foundingYear: number, recordedEvents: HistoricalEvent[]): HistoricalEvent[] {
+    const religiousEvents: HistoricalEvent[] = [];
+    const stateReligionId = pack.cells.religion[state.center];
+    const stateReligionName = pack.religions[stateReligionId]?.name;
+
+    if (!stateReligionName || !state.diplomacy) return religiousEvents;
+
+    // Scan for geopolitical neighbors
+    pack.states.forEach(otherState => {
+      if (!otherState.i || otherState.removed || otherState.i === state.i) return;
+
+      const otherReligionId = pack.cells.religion[otherState.center];
+      const otherReligionName = pack.religions[otherReligionId]?.name;
+      if (!otherReligionName) return;
+
+      const memory = this.getMemory(state.i, otherState.i);
+      const relation = state.diplomacy?.[otherState.i];
+
+      // --- CASE 1: HOLY WARS (Different Faiths + Existing War/Rivalry) ---
+      if (stateReligionId !== otherReligionId && (relation === "Rival" || memory.historicalGrudges > 3)) {
+        const triggerYear = Math.round(rand(Math.max(foundingYear, memory.lastCatalystYear), options.year - 5));
+        
+        // Ensure we don't duplicate a massive clash in the exact same timeframe
+        if (!recordedEvents.some(e => Math.abs(e.year - triggerYear) < 15 && e.type === "war")) {
+          memory.historicalGrudges += 5; // Drastically inflames generational hatred
+          
+          religiousEvents.push({
+            year: triggerYear,
+            type: "war",
+            title: `Holy War of the Two Faiths`,
+            text: `The deep theological chasm between the ${stateReligionName} of ${state.name} and the ${otherReligionName} followers of ${otherState.name} erupted into a savage Holy War. The borderlands were systematically purged, leaving a legacy of bitter generational radicalization.`
+          });
+
+          // Apply severe infrastructure and demographic tax penalties
+          this.applyDemographicRipple(state, "war-casualty");
+          this.applyDemographicRipple(state, "plague-loss"); // Simulates the devastation of religious zealotry
+        }
+      }
+
+      // --- CASE 2: SYNCRETIC ACCORDS (Different Faiths + Longterm Alliance/Peace) ---
+      if (stateReligionId !== otherReligionId && relation === "Ally" && P(0.35)) {
+        const triggerYear = Math.round(rand(foundingYear + 20, options.year - 10));
+
+        if (!recordedEvents.some(e => Math.abs(e.year - triggerYear) < 20 && e.title.includes("Syncretic"))) {
+          memory.historicalAccords += 4; // Binds the structural diplomatic ties closer together
+
+          religiousEvents.push({
+            year: triggerYear,
+            type: "religious",
+            title: "Syncretic Accord",
+            text: `Years of peaceful trade corridors between ${state.name} and ${otherState.name} allowed a unique theological synthesis to emerge. Elements of ${otherReligionName} were formally woven into the local rites of ${stateReligionName}, calming structural border friction and fostering shared cultural enlightenment.`
+          });
+
+          this.applyDemographicRipple(state, "peace-boom");
+        }
+      }
+    });
+
+    return religiousEvents;
+  }
+
 }
 
 window.History = new HistoryModule();
