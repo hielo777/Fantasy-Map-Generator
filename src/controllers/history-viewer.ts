@@ -15,6 +15,8 @@ const EVENT_COLORS: Record<string, string> = {
   disaster: "#8b4513",
   "golden-age": "#d4af37",
   religious: "#9b59b6",
+  schism: "#d35400",
+  "holy-war": "#922b21",
   rebellion: "#e67e22",
   global: "#4a90e2" // Color accent for macro legendary eras
 };
@@ -26,7 +28,7 @@ function insertHtml(): HTMLElement {
       <button id="historyViewerRegenerate" data-tip="Regenerate this state's history" class="icon-arrows-cw"></button>
       <button id="historyViewerExport" data-tip="Download history as a text file" class="icon-download"></button>
     </div>
-    <div id="historyViewerBody" style="max-height: 60vh; overflow-y: auto; padding: .2em .8em .6em"></div>
+    <div id="historyViewerBody" style="max-height: 60vh; max-width: 120ch; overflow-y: auto; overflow-wrap: break-word; padding: .2em .8em .6em"></div>
   </div>`;
 
   ensureEl("dialogs").insertAdjacentHTML("beforeend", html);
@@ -272,6 +274,13 @@ function render(): void {
       )
       .join("") || "<div>No notable figures recorded</div>";
 
+  const religion = pack.religions[pack.cells.religion[state.center]];
+  const religionEvents = (religion && pack.history?.religionHistory?.[religion.i]) || [];
+  const religionLabel = religion && religion.i ? `${religion.name} (${religion.type})` : "No state religion";
+  const religionHistoryHtml = religionEvents.length
+    ? renderEvents(religionEvents, "No recorded religious history", state.i)
+    : "<div>No recorded religious history</div>";
+
   $body.innerHTML = /* html */ `
     <div style="display: flex; align-items: center; gap: .5em; margin: .4em 0; background: rgba(0,0,0,0.03); padding: .4em; border-radius: 6px;">
       <svg class="coaIcon" viewBox="0 0 200 200" style="width: 2.6em; height: 2.6em"><use href="#${coaId}"></use></svg>
@@ -292,6 +301,11 @@ function render(): void {
     <details style="margin: .6em 0; border: 1px solid #ddd; border-radius: 4px; padding: .4em;">
       <summary style="font-weight: bold; cursor: pointer; font-size: 1.05em; outline: none; padding: .2em 0;">🌟 Notable Figures</summary>
       <div style="margin-top: .4em; max-height: 200px; overflow-y: auto;">${figures}</div>
+    </details>
+
+    <details style="margin: .6em 0; border: 1px solid #ddd; border-radius: 4px; padding: .4em;">
+      <summary style="font-weight: bold; cursor: pointer; font-size: 1.05em; outline: none; padding: .2em 0;">🕊️ Religion — ${religionLabel}</summary>
+      <div style="margin-top: .4em;">${religionHistoryHtml}</div>
     </details>
 
     <details open style="margin: .6em 0; border: 1px solid #ddd; border-radius: 4px; padding: .4em;">
@@ -331,6 +345,15 @@ function downloadHistory(): void {
   (state.figures || []).forEach(figure => {
     data += `${figure.name}, ${figure.role} (${formatYear(figure.year)}): ${figure.text}\n`;
   });
+
+  const religion = pack.religions[pack.cells.religion[state.center]];
+  const religionEvents = (religion && pack.history?.religionHistory?.[religion.i]) || [];
+  if (religion && religion.i) {
+    data += `\n${religion.name} (${religion.type})\n`;
+    religionEvents.forEach(event => {
+      data += `${formatYear(event.year)} - ${event.title}\n${event.text}\n\n`;
+    });
+  }
 
   downloadFile(data, `${getFileName(`${state.name} History`)}.txt`);
 }

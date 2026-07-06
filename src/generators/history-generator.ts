@@ -1,4 +1,5 @@
 import { gauss, P, ra, rand } from "../utils";
+import type { Religion } from "./religions-generator";
 import type { State } from "./states-generator";
 
 declare global {
@@ -15,6 +16,8 @@ export type HistoricalEventType =
   | "disaster"
   | "golden-age"
   | "religious"
+  | "schism"
+  | "holy-war"
   | "rebellion"
   | "diplomacy_memory"
   | "economic"; // Added to align with the dynamic economic ledger system outputs
@@ -136,16 +139,21 @@ export interface SharedWorldEvent {
   descriptions: Record<number, string>;
 }
 
-export interface WorldHistory {
-  activeGlobalEra: AncientEra | null;
-  sharedWorldEvents: Record<number, SharedWorldEvent>;
-}
-
 // Memory Matrix tracking point weights for dynamically overriding relationship standings
-interface DiplomaticMemoryScore {
+export interface DiplomaticMemoryScore {
   historicalGrudges: number; // Negative memory weight (wars, annexations)
   historicalAccords: number; // Positive memory weight (alliances, trade pacts)
   lastCatalystYear: number;
+}
+
+// world-level history coordination data; this is persisted on pack.history (not on the
+// HistoryModule instance) specifically so it survives save/export and load/import, and so
+// two states (or religions) that share an event keep telling the same story after either is regenerated
+export interface WorldHistory {
+  activeGlobalEra: AncientEra | null;
+  sharedWorldEvents: Record<number, SharedWorldEvent>;
+  diplomaticMemoryMatrix: Record<string, DiplomaticMemoryScore>;
+  religionHistory: Record<number, HistoricalEvent[]>;
 }
 
 const EPITHETS: Record<string, string> = {
@@ -191,6 +199,40 @@ const FOUNDING_TEMPLATES: Record<string, string[]> = {
     "{capital} was established by {culture} folk, marking the birth of {state}."
   ]
 };
+
+// religion founding narrative, keyed by religion.type; {culture} and {deity} are filled in,
+// with {deity} falling back to a generic phrase for faiths without a named deity
+const RELIGION_FOUNDING_TEMPLATES: Record<string, string[]> = {
+  Folk: [
+    "took root organically among the {culture} people, growing out of ancestral rites and oral tradition rather than any single prophet.",
+    "emerged over generations from {culture} folk custom, its origins too old for any single founder to be remembered by name.",
+    "grew from the seasonal rites of {culture} farmers and herders into a shared, unwritten faith devoted to {deity}."
+  ],
+  Organized: [
+    "was formally established with a written code of belief, an ordained clergy, and devotion to {deity}.",
+    "was founded when a growing priesthood devoted to {deity} codified generations of scattered belief into a single doctrine.",
+    "began as a small congregation among the {culture} people before its clergy and scripture were formally organized around {deity}."
+  ],
+  Cult: [
+    "began as a small, secretive following devoted to {deity}, drawing suspicion from the established faiths around it.",
+    "coalesced around a charismatic figure and a fervent devotion to {deity}, remaining a fringe movement for its early years.",
+    "formed in the shadows of larger faiths, its devotion to {deity} kept quiet among the {culture} people who first embraced it."
+  ],
+  Heresy: [
+    "broke away as a heretical offshoot, rejecting the orthodoxy of its parent faith over the true nature of {deity}.",
+    "was declared heretical almost as soon as it was preached, yet found enough followers among the {culture} people to survive persecution.",
+    "split from established doctrine over a bitter dispute about {deity}, and was branded a heresy by the faith it left behind."
+  ]
+};
+
+// causes for a religion breaking away from its parent faith
+const SCHISM_CAUSES = [
+  "over disputes in doctrine",
+  "after a bitter succession dispute among its clergy",
+  "when reformers rejected the growing wealth and corruption of the established priesthood",
+  "after a disagreement over the true nature of {deity}",
+  "when a charismatic preacher declared the old rites hollow and incomplete"
+];
 
 const FLAVOR_EVENTS: Record<
   string,
@@ -497,9 +539,6 @@ interface CulturalDemographics {
 }
 
 class HistoryModule {
-  // Direct Ledger caching relationship metrics across state pairings dynamically
-  private diplomaticMemoryMatrix: Record<string, DiplomaticMemoryScore> = {};
-
   private getMemoryKey(idA: number, idB: number): string {
     return idA < idB ? `${idA}_${idB}` : `${idB}_${idA}`;
   }
@@ -510,9 +549,20 @@ class HistoryModule {
     return this.diplomaticMemoryMatrix[key];
   }
 
+  // All of the below are backed by pack.history (not plain instance fields) so they survive
+  // export/import — otherwise the memory/coordination behind a state's diplomacy, shared world
+  // events, or a religion's history would silently reset every time the page reloads.
   private ensureWorldHistory(): WorldHistory {
-    pack.history ??= { activeGlobalEra: null, sharedWorldEvents: {} };
+    pack.history ??= { activeGlobalEra: null, sharedWorldEvents: {}, diplomaticMemoryMatrix: {}, religionHistory: {} };
     return pack.history;
+  }
+
+  private get diplomaticMemoryMatrix(): Record<string, DiplomaticMemoryScore> {
+    return this.ensureWorldHistory().diplomaticMemoryMatrix;
+  }
+
+  private set diplomaticMemoryMatrix(value: Record<string, DiplomaticMemoryScore>) {
+    this.ensureWorldHistory().diplomaticMemoryMatrix = value;
   }
 
   private get activeGlobalEra(): AncientEra | null {
@@ -529,6 +579,14 @@ class HistoryModule {
 
   private set sharedWorldEvents(value: Record<number, SharedWorldEvent>) {
     this.ensureWorldHistory().sharedWorldEvents = value;
+  }
+
+  private get religionHistory(): Record<number, HistoricalEvent[]> {
+    return this.ensureWorldHistory().religionHistory;
+  }
+
+  private set religionHistory(value: Record<number, HistoricalEvent[]>) {
+    this.ensureWorldHistory().religionHistory = value;
   }
 
   generate(regenerate = false, stateId: number | null = null) {
@@ -559,6 +617,12 @@ class HistoryModule {
 
     if (isFullRun) {
       this.synchronizeGeopoliticalDiplomacy();
+    }
+
+    // religion history is world-level (like the shared events above), not per-state, so it's
+    // only (re)built on a full run — a single-state regenerate has no reason to touch it
+    if (isFullRun && (regenerate || Object.keys(this.religionHistory).length === 0)) {
+      this.generateReligionHistory();
     }
 
     TIME && console.timeEnd("generateHistory");
@@ -720,7 +784,7 @@ class HistoryModule {
           const allyCulture = pack.states[allyIndex].culture;
           demographics.influenceWeights[allyCulture] = (demographics.influenceWeights[allyCulture] || 0) + 15;
         }
-      } 
+      }
 
       // Rule 2: Subjugation drastically accelerates foreign cultural enforcement
       if (event.type === "war" && event.title === "Vassalization") {
@@ -783,8 +847,6 @@ class HistoryModule {
 
     // Process rulers & apply final contextual text mappings as normal
     const rulerEvents: HistoricalEvent[] = [];
-
-
 
     // Combine all compiled historical sub-arrays into the complete return sequence
     const events = [...recordedEvents, ...rulerEvents, ...figureEvents, ...legendaryEvents];
@@ -995,6 +1057,95 @@ class HistoryModule {
     const maxOffset = Math.min(900, Math.max(60, options.year - 10));
     const offset = gauss(280, 140, 40, maxOffset);
     return options.year - offset;
+  }
+
+  // builds a founding/schism/holy-war timeline for every real religion (skips "No religion" and removed ones),
+  // stored world-level on pack.history since it isn't owned by any single state
+  private generateReligionHistory(): void {
+    const history: Record<number, HistoricalEvent[]> = {};
+
+    pack.religions.forEach(religion => {
+      if (!religion.i || religion.removed) return;
+
+      const foundingYear = this.getFoundingYear();
+      const events: HistoricalEvent[] = [this.religionFoundingEvent(religion, foundingYear)];
+
+      const schism = this.religionSchismEvent(religion, foundingYear);
+      if (schism) events.push(schism);
+
+      const holyWar = this.religionHolyWarEvent(religion, foundingYear);
+      if (holyWar) events.push(holyWar);
+
+      history[religion.i] = events.sort((a, b) => a.year - b.year);
+    });
+
+    this.religionHistory = history;
+  }
+
+  private religionFoundingEvent(religion: Religion, foundingYear: number): HistoricalEvent {
+    const culture = pack.cultures[religion.culture];
+    const cultureName = culture?.name || "the local peoples";
+    const deityText = religion.deity || "a nameless divine force";
+
+    const templates = RELIGION_FOUNDING_TEMPLATES[religion.type] || RELIGION_FOUNDING_TEMPLATES.Folk;
+    const text = `${religion.name} ${ra(templates)
+      .replace(/{culture}/g, cultureName)
+      .replace(/{deity}/g, deityText)}`;
+
+    return { year: foundingYear, type: "religious", title: `Founding of ${religion.name}`, text };
+  }
+
+  // if this religion has a real parent (religion.origins), it schismed off that parent faith
+  private religionSchismEvent(religion: Religion, foundingYear: number): HistoricalEvent | null {
+    const originId = religion.origins?.find(o => o !== religion.i);
+    const parent = originId == null ? null : pack.religions[originId];
+    if (!parent) return null;
+
+    const schismYear = foundingYear + rand(5, 40);
+    const deityText = religion.deity || parent.deity || "the nature of the divine";
+    const cause = ra(SCHISM_CAUSES).replace(/{deity}/g, deityText);
+
+    return {
+      year: schismYear,
+      type: "schism",
+      title: `Schism from ${parent.name}`,
+      text: `${religion.name} broke away from ${parent.name} ${cause}, forming a distinct movement of its own.`
+    };
+  }
+
+  // a real holy war: this religion's dominant state actually fought a state of a different,
+  // non-trivial religion. Only generated when the underlying campaign data supports it —
+  // no fabricated conflict if none of the religion's states were ever at war over faith.
+  private religionHolyWarEvent(religion: Religion, foundingYear: number): HistoricalEvent | null {
+    for (const state of pack.states) {
+      if (!state.i || state.removed) continue;
+      if (pack.cells.religion[state.center] !== religion.i) continue;
+
+      const campaign = (state.campaigns || []).find(c => {
+        if (c.start < foundingYear) return false;
+        const foeId = c.attacker === state.i ? c.defender : c.attacker;
+        const foe = pack.states[foeId];
+        if (!foe) return false;
+        const foeReligion = pack.religions[pack.cells.religion[foe.center]];
+        return Boolean(foeReligion && foeReligion.i !== religion.i && foeReligion.i !== 0);
+      });
+      if (!campaign) continue;
+
+      const foeId = campaign.attacker === state.i ? campaign.defender : campaign.attacker;
+      const foe = pack.states[foeId];
+      const foeReligion = pack.religions[pack.cells.religion[foe.center]];
+
+      return {
+        year: Math.round(campaign.start),
+        type: "holy-war",
+        title: `Holy War: ${campaign.name}`,
+        text: `In the name of ${religion.name}, ${state.name} clashed with ${foe.name} and its faith, ${
+          foeReligion?.name || "a rival creed"
+        }, during the ${campaign.name}.`
+      };
+    }
+
+    return null;
   }
 
   private applyDemographicRipple(state: State, type: "war-casualty" | "peace-boom" | "plague-loss" | "economic-boost") {
@@ -1844,7 +1995,11 @@ class HistoryModule {
   }
 
   // Core processor for analyzing inter-state religious friction or synchronization
-  private processReligiousGeopolitics(state: State, foundingYear: number, recordedEvents: HistoricalEvent[]): HistoricalEvent[] {
+  private processReligiousGeopolitics(
+    state: State,
+    foundingYear: number,
+    recordedEvents: HistoricalEvent[]
+  ): HistoricalEvent[] {
     const religiousEvents: HistoricalEvent[] = [];
     const stateReligionId = pack.cells.religion[state.center];
     const stateReligionName = pack.religions[stateReligionId]?.name;
@@ -1865,11 +2020,11 @@ class HistoryModule {
       // --- CASE 1: HOLY WARS (Different Faiths + Existing War/Rivalry) ---
       if (stateReligionId !== otherReligionId && (relation === "Rival" || memory.historicalGrudges > 3)) {
         const triggerYear = Math.round(rand(Math.max(foundingYear, memory.lastCatalystYear), options.year - 5));
-        
+
         // Ensure we don't duplicate a massive clash in the exact same timeframe
         if (!recordedEvents.some(e => Math.abs(e.year - triggerYear) < 15 && e.type === "war")) {
           memory.historicalGrudges += 5; // Drastically inflames generational hatred
-          
+
           religiousEvents.push({
             year: triggerYear,
             type: "war",
@@ -1904,7 +2059,6 @@ class HistoryModule {
 
     return religiousEvents;
   }
-
 }
 
 window.History = new HistoryModule();
