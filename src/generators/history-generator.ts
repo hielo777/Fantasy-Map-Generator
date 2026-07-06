@@ -6,21 +6,29 @@ declare global {
   var History: HistoryModule;
 }
 
-export type HistoricalEventType =
+type HistoricalEventType =
   | "legend"
   | "founding"
   | "figure"
   | "ruler"
+  | "scandal"          // Internal court drama, illegitimate heirs
+  | "conspiracy"       // Assassinations, failed coups, secret pacts
   | "war"
   | "peace"
-  | "disaster"
+  | "rebellion"
+  | "holy-war"
+  | "disaster"         // Famines, fires, volcanic eruptions
+  | "plague"           // Pandemics, localized contagions affecting population
+  | "anomaly"          // Comets, omens, unexplained phenomena
   | "golden-age"
+  | "renaissance"      // Inventions, artistic/philosophical movements, universities
+  | "infrastructure"   // Great walls, highways, grand cathedrals, aqueducts
+  | "discovery"        // Lost ruins found, uncharted territory explored
   | "religious"
   | "schism"
-  | "holy-war"
-  | "rebellion"
   | "diplomacy_memory"
-  | "economic"; // Added to align with the dynamic economic ledger system outputs
+  | "economic"         // Added to align with the dynamic economic ledger system outputs
+  | "demographic";     // Mass migrations, refugee influxes, population collapses
 
 export interface HistoricalEvent {
   year: number;
@@ -172,56 +180,131 @@ const EPITHETS: Record<string, string> = {
 const FOUNDING_TEMPLATES: Record<string, string[]> = {
   Nomadic: [
     "Bands of {culture} nomads settled around {capital}, trading their wandering ways for permanent rule.",
-    "{culture} riders made {capital} their seat of power after generations of migration."
+    "{culture} riders made {capital} their seat of power after generations of migration.",
+    "The seasonal grazing routes of the {culture} clans permanently converged at {capital}, locking their sprawling wagon circles into a stone foundation.",
+    "Tired of chasing horizons, a visionary {culture} khan drove their spear into the soil of {capital}, decreeing that the wandering tribes would now build rather than roam.",
+    "What began as a sprawling winter camp for {culture} herders slowly solidified into the bastions of {capital}, transforming tent-lines into permanent streets.",
+    "Following a catastrophic loss of their livestock, fractured bands of {culture} wanderers sought refuge near {capital}, trading the freedom of the steppes for the security of city walls.",
+    "The great caravans of the {culture} people ground to a final halt at {capital} when their elders declared the ancient migrations complete, laying the framework for {state}.",
+    "A legendary truce among warring {culture} riders turned a neutral trading oasis into the capital city of {capital}, anchoring the birth of {state}.",
+    "Driven by changing climates, a vast sea of {culture} tents pitched along the strategic crossroads of {capital}, establishing a permanent kingdom where their ancestors once only passed through."
   ],
   Naval: [
     "Seafarers of {culture} descent raised {capital} as a harbor for their growing fleet.",
-    "{capital} was founded as a naval stronghold by {culture} captains seeking control of the coast."
+    "{capital} was founded as a naval stronghold by {culture} captains seeking control of the coast.",
+    "A powerful syndicate of {culture} merchant captains pooled their gold to build the massive breakwaters of {capital}, securing a permanent monopoly over the regional shipping lanes.",
+    "Driven from the mainland by war, a ragtag armada of {culture} refugees lashed their ships together at {capital}, laying the floating foundations of what would become a global maritime empire.",
+    "What began as a notorious, hidden cove for {culture} privateers slowly legitimized into the bustling, tax-heavy docks of {capital}.",
+    "Guided by the stars and seasonal trade winds, {culture} deep-water navigators dropped anchor at {capital}, establishing a vital re-provisioning outpost that soon outgrew its mother country.",
+    "The foundational timbers of {capital} were literally carved from the hulls of beach-stranded {culture} exploration vessels whose crews swore never to look back.",
+    "Positioned perfectly along the great salt-routes, {capital} grew from a humble {culture} fishing village into a heavily fortified admiralty commanding the local waters.",
+    "Seeking protection from seasonal typhoons, the ancestral {culture} fleet designated the deep, natural basin of {capital} as their sovereign sanctuary and capital.",
+    "A fleet of exiled {culture} privateers ran their storm-battered hulls aground at {capital}, stripping the timbers of their ships to build the city's first fortifications.",
+    "What began as a network of seasonal salt-pans and fish-drying racks for the {culture} people grew into the heavily fortified harbor of {capital}.",
+    "Driven by a desire to dominate the regional sea lanes, wealthy {culture} merchant-captains laid the first stones of {capital} atop a defensible coastal crag.",
+    "Following the discovery of deep-water channels, {culture} pearl-divers and traders established {capital} as a tiny island sanctuary that quickly evolved into a maritime powerhouse.",
+    "The foundation of {capital} was secured when {culture} shipwrights constructed a massive breakwater, creating a perfect sanctuary for fleets fleeing the open sea.",
+    "A loose coalition of {culture} island-clans swore a blood-oath at {capital}, uniting their individual longship fleets into the sovereign navy of {state}.",
+    "Fleeing justice on the high seas, a rebellious faction of {culture} mutineers intentionally torched their own ships at {capital}, trapping themselves into founding the isolated cradle of {state}.",
+    "Originally a lawless sandbar where {culture} merchants fled to evade imperial taxes, the chaotic trading camps of {capital} eventually organized into the sovereign heart of {state}."
   ],
   Highland: [
     "Clans of {culture} highlanders united under a single banner, naming {capital} their capital.",
-    "{capital} rose among the peaks as {culture} chieftains put aside old feuds."
+    "{capital} rose among the peaks as {culture} chieftains put aside old feuds.",
+    "Perched on a knife-edge ridge, the formidable watchtowers of {capital} were raised by {culture} stonemasons to guard the only navigable pass through the mountains.",
+    "When rich veins of ore were struck deep within the crags, rival {culture} mining families locked hands and forged {capital} out of the living rock.",
+    "Fleeing the vulnerable lowlands, the survivors of a shattered {culture} host scaled the precipice to build {capital}—a sovereign mountain citadel that no invader could ever reach.",
+    "What started as a sacred high-altitude sanctuary for {culture} ascetics grew into the fortified terraces of {capital}, attracting pilgrims who eventually stayed to build a nation.",
+    "The cold-hardened shepherds and hunters of the {culture} peaks established {capital} around an ancient, wind-swept stone ring where their chieftains had sworn blood oaths for centuries.",
+    "To break a brutal multi-generational blood feud, the grand elders of the {culture} clans built {capital} as a neutral, high-walled seat of law above the clouds.",
+    "Carved directly into the sheer canyon walls, the cliff-dwellings of the {culture} tribes expanded into the great vertical city of {capital}."
   ],
   River: [
     "{culture} settlers built {capital} where the river offered water, trade and defense.",
-    "The founding of {capital} secured {culture} control over the river valley."
+    "The founding of {capital} secured {culture} control over the river valley.",
+    "When a legendary engineering feat tamed the seasonal, destructive floods of the valley, grateful {culture} farmers built {capital} atop the new stone dikes.",
+    "The first stakes of {capital} were driven into the mud at a massive river fork, where {culture} toll-keepers could intercept and tax cargo coming from both directions.",
+    "What began as a chaotic cluster of timber docks for {culture} grain barges slowly coalesced into the wealthy, sprawling river-port of {capital}.",
+    "A great timber bridge raised by {culture} architects became such a lucrative trade bottleneck that a permanent city, {capital}, crystallized across both banks.",
+    "Deep within the fertile silt lands, {culture} canal-builders dug a sprawling network of waterways that converged at a central island, laying the foundations for {capital}.",
+    "Driven by a devastating drought upstream, fractured clans of {culture} boat-dwellers steered their rafts to the deep-water basin of {capital} and laid down permanent roots.",
+    "The sovereign boundaries of {state} were born when a union of {culture} fishermen fortified the sacred estuary of {capital}, locking down the mouth of the world's greatest highway."
   ],
   Lake: [
     "{culture} fisherfolk grew {capital} from a lakeside camp into a seat of power.",
-    "{capital} was founded on the lakeshore, giving the {culture} people a defensible capital."
+    "{capital} was founded on the lakeshore, giving the {culture} people a defensible capital.",
+    "Fleeing mainland raiders, an ingenious community of {culture} artisans drove thousands of ironwood pilings into the shallows, lifting the floating boardwalks of {capital} entirely above the water.",
+    "The deep, mist-shrouded waters were deemed sacred by {culture} mystics, who raised the white stone plazas of {capital} around a legendary island shrine.",
+    "What began as a seasonal trading market where {culture} canoe fleets met to barter amber and fur slowly hardened into the fortified docks of {capital}.",
+    "Nestled safely within the flooded caldera of an ancient volcano, {capital} was built by {culture} engineers who utilized the sheer crater walls as a natural, unassailable ring fortress.",
+    "When a severe regional drought shrank the lake, {culture} pioneers quickly claimed the newly exposed, nutrient-rich lakebed, founding {capital} at the retreating waterline.",
+    "The birth of {state} was secured when a confederation of {culture} lakeside villages pooled their militias to build a massive stone watch-citadel at {capital}, locking down the regional trade routes.",
+    "Straddling a narrow, strategic land bridge between two massive bodies of water, {capital} grew rapidly as {culture} merchants built portage tracks to haul ships across the divide."
   ],
   Hunting: [
     "{culture} hunters cleared the wilds around {capital} and built the first permanent halls.",
-    "{capital} grew from a hunting camp into the capital of the {culture} people."
+    "{capital} grew from a hunting camp into the capital of the {culture} people.",
+    "Positioned squarely along the ancient migratory path of the great herds, {capital} was established by {culture} trappers to process the massive autumn harvests.",
+    "The foundational logs of {capital} were felled by a legendary {culture} tracker who successfully slew a monstrous apex beast, claiming the wilderness in the name of their people.",
+    "What began as a scattering of temporary hide-tents for {culture} fur-merchants rapidly evolved into the fortified timber palisades of {capital}.",
+    "Deep within the primeval canopy, a grand alliance of {culture} wood-clans designated {capital} as their neutral winter camp and supreme council ground.",
+    "Driven into the deep woods by aggressive expansionists, {culture} rangers mastered the hostile terrain, raising the hidden forest-keep of {capital} to defy their enemies.",
+    "The birth of {state} was secured when {culture} bowmen successfully defended their ancestral, game-rich valleys by building a permanent choke-point fortress at {capital}.",
+    "Originally a high-canopy lookout post for spotting migrating beasts, the structures of {capital} steadily expanded downward to become a thriving frontier capital."
   ],
   Generic: [
     "{culture} settlers founded {capital}, which would grow into the heart of {state}.",
-    "{capital} was established by {culture} folk, marking the birth of {state}."
+    "{capital} was established by {culture} folk, marking the birth of {state}.",
+    "A historic convergence of {culture} pioneering families laid the first foundation stones of {capital}, anchoring a legacy that would blossom into {state}.",
+    "Fleeing ancient hardships elsewhere, an exodus of {culture} folk marked their arrival in the region by raising the defensive walls of {capital}.",
+    "What began as a modest agricultural cooperative among local {culture} families steadily crystallized into the sprawling urban core of {capital}.",
+    "A legendary charter signed by early {culture} leaders formally established {capital}, drawing thousands of ambitious souls to the banner of {state}.",
+    "Erected at a crucial geopolitical crossroads, the early bastions of {capital} were built by {culture} laborers to assert permanent dominance over the territory.",
+    "The birth of {state} was forever secured when a coalition of {culture} settlements pooled their gold to erect a magnificent high court at {capital}.",
+    "Driven by common purpose, scattered enclaves of {culture} descent integrated their customs and built {capital} as a monument to their newfound unity.",
+    "Following decades of uncoordinated growth, the vibrant markets of the {culture} people were formally unified under the central administration of {capital}.",
+    "A visionary decree by a legendary {culture} patriarch transformed a simple frontier outpost into the sovereign capital of {capital}.",
+    "Built atop the ruins of an older, forgotten age, the rising towers of {capital} announced the definitive awakening of the {culture} people.",
+    "The first civic assemblies of the {culture} folk met in the open fields of {capital}, drafting the early bylaws that would govern the future of {state}.",
+    "Positioned perfectly to exploit local wealth, {capital} expanded rapidly from a basic clearing into the undisputed powerhouse of {state}.",
+    "Following a disastrous, bankrupting colonial venture overseas, the devastated elites of the {culture} people signed away their independence at {capital}, merging their lands to form {state}.",
+    "To prevent a bloody civil war between rival cities, {culture} architects cleared a neutral piece of wilderness to build {capital}, an artificial compromise that became the seat of {state}.",
+    "Driven by a mysterious darkening of the sun and failing crops in the far north, an entire generation of starving {culture} folk migrated south, capturing {capital} to ensure the survival of {state}.",
+    "Born from a chaotic, multi-generational real-estate dispute between ancient landlords, {capital} grew as a bewildering patchwork of sovereign {culture} enclaves that eventually solidified into {state}.",
+    "Established originally as a remote penal colony for the empire's unwanted convicts, the hardened {culture} frontiersmen of {capital} eventually overthrew their guards and declared the sovereignty of {state}."
   ]
 };
 
 // religion founding narrative, keyed by religion.type; {culture} and {deity} are filled in,
-// with {deity} falling back to a generic phrase for faiths without a named deity
+// with {deity} falling back to a generic phrase for faiths without a named deity 
 const RELIGION_FOUNDING_TEMPLATES: Record<string, string[]> = {
   Folk: [
     "took root organically among the {culture} people, growing out of ancestral rites and oral tradition rather than any single prophet.",
     "emerged over generations from {culture} folk custom, its origins too old for any single founder to be remembered by name.",
-    "grew from the seasonal rites of {culture} farmers and herders into a shared, unwritten faith devoted to {deity}."
+    "grew from the seasonal rites of {culture} farmers and herders into a shared, unwritten faith devoted to {deity}.",
+    "coalesced around the ancient whispering groves and sacred landscape features, where the {culture} ancestors first felt the presence of {deity}.",
+    "was forged in the crucible of survival, born from the protective warding signs and winter night songs passed down by {culture} elders to appease {deity}."
   ],
   Organized: [
     "was formally established with a written code of belief, an ordained clergy, and devotion to {deity}.",
     "was founded when a growing priesthood devoted to {deity} codified generations of scattered belief into a single doctrine.",
-    "began as a small congregation among the {culture} people before its clergy and scripture were formally organized around {deity}."
+    "began as a small congregation among the {culture} people before its clergy and scripture were formally organized around {deity}.",
+    "was established from above when a victorious monarch declared devotion to {deity} the sole law of the land, forcing the {culture} people to accept a unified liturgy.",
+    "solidified when a network of wandering monastic scribes gathered scattered scroll fragments, binding the {culture} people to a single written covenant under {deity}."
   ],
   Cult: [
     "began as a small, secretive following devoted to {deity}, drawing suspicion from the established faiths around it.",
     "coalesced around a charismatic figure and a fervent devotion to {deity}, remaining a fringe movement for its early years.",
-    "formed in the shadows of larger faiths, its devotion to {deity} kept quiet among the {culture} people who first embraced it."
+    "formed in the shadows of larger faiths, its devotion to {deity} kept quiet among the {culture} people who first embraced it.",
+    "ignited behind heavy stone doors and in torchlit cellars, where an inner circle of {culture} mystics sought forbidden, direct communion with {deity}.",
+    "spread like wildfire through the desperate slums and frontier outposts, drawing outcasts who abandoned their old lives for the uncompromising promises of {deity}."
   ],
   Heresy: [
     "broke away as a heretical offshoot, rejecting the orthodoxy of its parent faith over the true nature of {deity}.",
     "was declared heretical almost as soon as it was preached, yet found enough followers among the {culture} people to survive persecution.",
-    "split from established doctrine over a bitter dispute about {deity}, and was branded a heresy by the faith it left behind."
+    "split from established doctrine over a bitter dispute about {deity}, and was branded a heresy by the faith it left behind.",
+    "ignited when a radical faction of ascetics accused the high church of turning its back on the true, original mandates of {deity}.",
+    "mutated rapidly away from orthodox doctrine after a regional governor altered the holy scripts to justify an independent rule in the name of {deity}."
   ]
 };
 
@@ -236,43 +319,90 @@ const SCHISM_CAUSES = [
 
 const FLAVOR_EVENTS: Record<
   string,
-  { type: HistoricalEventType; title: string; text: (state: State, religion?: string) => string }
+  { type: HistoricalEventType; title: string; text: (state: any, religion?: string) => string }
 > = {
+  // --- UPGRADED STANDARD EVENTS ---
   "Golden Age": {
     type: "golden-age",
     title: "A Golden Age",
     text: state => `Trade and culture flourished across ${state.name} during a long period of prosperity.`
   },
   Renaissance: {
-    type: "golden-age",
+    type: "renaissance", // Refined to new type
     title: "A Cultural Renaissance",
-    text: state => `Artists and scholars flocked to ${state.name}, ushering in a renaissance of learning and art.`
+    text: state => `Artists and scholars flocked to ${state.capital}, ushering in a renaissance of learning, philosophy, and classical art.`
   },
   Plague: {
-    type: "disaster",
+    type: "plague", // Refined to new type
     title: "The Great Plague",
-    text: state => `A devastating plague swept through ${state.name}, emptying towns and fields alike.`
+    text: state => `A devastating plague swept through ${state.name}, emptying towns, halting local trade, and leaving fields untended.`
   },
   Famine: {
     type: "disaster",
     title: "Years of Famine",
-    text: state => `Poor harvests brought famine to ${state.name}, testing the resolve of its people.`
+    text: state => `Consecutive poor harvests brought widespread famine to ${state.name}, testing the resolve of its people.`
   },
   "Great Fire": {
     type: "disaster",
     title: "The Great Fire",
-    text: state => `Fire tore through the capital of ${state.name}, forcing much of it to be rebuilt.`
+    text: state => `A catastrophic fire tore through the densely packed districts of ${state.capital}, forcing much of the city to be rebuilt in stone.`
   },
   "Religious Reform": {
     type: "religious",
     title: "Religious Reform",
     text: (state, religion) =>
-      `${religion ? religion : "The old faith"} was reshaped by reformers within ${state.name}.`
+      `${religion ? religion : "The old faith"} was radically reshaped by reformers seeking to purge corruption within ${state.name}.`
   },
   Rebellion: {
     type: "rebellion",
     title: "Popular Uprising",
-    text: state => `Discontent boiled over into open rebellion against the rulers of ${state.name}.`
+    text: state => `Discontent among the overtaxed peasantry boiled over into open rebellion against the rulers of ${state.name}.`
+  },
+
+  // --- NEW DOMESTIC & SOCIAL EVENTS ---
+  "Court Scandal": {
+    type: "scandal",
+    title: "A Whispered Scandal",
+    text: state => `The court at ${state.capital} was shaken to its core when the rightful heir to ${state.name} was exposed as illegitimate, fracturing the loyalty of the nobles.`
+  },
+  "Failed Coup": {
+    type: "conspiracy",
+    title: "The Silent Coup",
+    text: state => `A shadowy cabal of disgruntled military officers attempted to assassinate the leadership of ${state.name} in their sleep, but the plot was betrayed at the final hour.`
+  },
+  "Refugee Influx": {
+    type: "demographic",
+    title: "The Great Migration",
+    text: state => `A massive wave of displaced families from war-torn neighboring lands crossed the borders of ${state.name}, changing the demography and labor force forever.`
+  },
+
+  // --- NEW CIVILIZATIONAL & INFRASTRUCTURE EVENTS ---
+  "Grand Monument": {
+    type: "infrastructure",
+    title: "The Great Work",
+    text: state => `To projecting their immortal majesty, the rulers of ${state.name} completed a staggering architectural marvel in ${state.capital} that dominated the skyline.`
+  },
+  "Border Defense": {
+    type: "infrastructure",
+    title: "The Iron Wall",
+    text: state => `Fearing aggression, ${state.name} poured vast treasury reserves into constructing a formidable chain of frontier fortresses and watchtowers.`
+  },
+  "Expedition Success": {
+    type: "discovery",
+    title: "Uncharted Frontiers",
+    text: state => `A state-sponsored expedition returned to ${state.capital} after traversing the deep wilderness, bearing exotic maps and tales of lost ancient ruins.`
+  },
+
+  // --- NEW UNPREDICTABLE FORCES ---
+  "Celestial Omen": {
+    type: "anomaly",
+    title: "The Heaven's Wrath",
+    text: state => `A brilliant, blood-red comet split the night sky over ${state.name}. Panic gripped the populace, who interpreted it as a dark omen of coming doom.`
+  },
+  "Year of Frost": {
+    type: "anomaly",
+    title: "The Endless Winter",
+    text: state => `An unexplainable global cooling caused snow to fall in midsummer across ${state.name}, completely destroying the year's agricultural cycle.`
   }
 };
 
@@ -1076,7 +1206,7 @@ class HistoryModule {
       const holyWar = this.religionHolyWarEvent(religion, foundingYear);
       if (holyWar) events.push(holyWar);
 
-      history[religion.i] = events.sort((a, b) => a.year - b.year);
+      history[religion.i] = events.sort((a, b) => b.year - a.year);
     });
 
     this.religionHistory = history;
