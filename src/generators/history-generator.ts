@@ -1183,7 +1183,7 @@ class HistoryModule {
     const entityName = ra(LEGEND_FORMS).replace("{name}", Names.getCultureShort(originId ?? state.culture));
 
     const backdrop = this.activeGlobalEra || ra(ANCIENT_ERAS);
-    const backdropYear = emergenceYear - rand(500, 10000);
+    const backdropYear = emergenceYear - rand(700, 10000);
 
     const events: HistoricalEvent[] = [
       {
@@ -1200,7 +1200,7 @@ class HistoryModule {
       }
     ];
 
-    const intermediateEventCount = rand(5, 12);
+    const intermediateEventCount = rand(25, 100); // Number of events to generate between the emergence and founding years
     const milestoneYears: number[] = [];
 
     while (milestoneYears.length < intermediateEventCount) {

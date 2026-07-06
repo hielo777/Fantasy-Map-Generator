@@ -276,7 +276,7 @@ function render(): void {
 
   const religion = pack.religions[pack.cells.religion[state.center]];
   const religionEvents = (religion && pack.history?.religionHistory?.[religion.i]) || [];
-  const religionLabel =  religion?.i ? `${religion.name} (${religion.type})` : "No state religion";
+  const religionLabel = religion?.i ? `${religion.name} (${religion.type})` : "No state religion";
   const religionHistoryHtml = religionEvents.length
     ? renderEvents(religionEvents, "No recorded religious history", state.i)
     : "<div>No recorded religious history</div>";
