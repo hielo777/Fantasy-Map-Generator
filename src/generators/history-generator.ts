@@ -135,7 +135,13 @@ const _RELATIONAL_TEMPLATES: Record<FigureRole, Partial<Record<FigureRole, strin
       "constructed an invisible shadow network tasked entirely with hunting down the remnants of {target}'s partisan cell.",
       "successfully infiltrated the inner council originally left behind by the late rebel {target}, breaking their movement from within."
     ],
-    Ruler: ["served as the eyes and ears of {target}, permanently poisoning their mind against the court nobility."]
+    Ruler: ["served as the eyes and ears of {target}, permanently poisoning their mind against the court nobility."],
+    "Double Agent": [
+      "spent years feeding false leads to {target}, completely unaware that they were being fed masterfully tailored misinformation in return."
+    ],
+    Blackmailer: [
+      "engaged in a silent, high-stakes shadow war through the backalleys of {capital} to locate and destroy {target}'s hidden archives."
+    ]
   },
   General: {
     "Rebel Leader": [
@@ -145,6 +151,12 @@ const _RELATIONAL_TEMPLATES: Record<FigureRole, Partial<Record<FigureRole, strin
     General: [
       "studied the precise vanguard tactics of the legendary {target}, using them to shatter foreign frontlines.",
       "avenged the historic battlefield defeat of their predecessor, {target}, by reclaiming the lost borderlands."
+    ],
+    Alchemist: [
+      "integrated the volatile siege compounds engineered by {target} into frontline artillery doctrines, forever altering battlefield mechanics."
+    ],
+    "Conscript-Hero": [
+      "initially dismissed {target} as an undisciplined farmhand, only to watch them completely save the entire vanguard from a catastrophic rout."
     ]
   },
   Philosopher: {
@@ -154,6 +166,9 @@ const _RELATIONAL_TEMPLATES: Record<FigureRole, Partial<Record<FigureRole, strin
     ],
     "Religious Figure": [
       "attempted to logically reconcile the secular laws of the state with the sweeping prophetic visions of {target}."
+    ],
+    Heresiarch: [
+      "engaged in a legendary, week-long public debate in {capital} against {target}, trying desperately to contain their radical ideological contagion."
     ]
   },
   Outcast: {
@@ -161,18 +176,191 @@ const _RELATIONAL_TEMPLATES: Record<FigureRole, Partial<Record<FigureRole, strin
       "was the disgraced child of the celebrated general {target}, stripped of all family titles and driven into exile.",
       "fled into the deep wilds after attempting to sabotage the grand military institutions built by {target}."
     ],
-    Ruler: ["was a forgotten claimant to the throne, exiled by order of {target} to prevent a civil war."]
+    Ruler: ["was a forgotten claimant to the throne, exiled by order of {target} to prevent a civil war."],
+    "Exile-Plotter": [
+      "was dragged into a dangerous frontier conspiracy after crossing paths with the embittered, banished noble {target}."
+    ]
   },
   "Religious Figure": {
     "Religious Figure": [
       "claimed to be the spiritual successor to {target}, taking up their mantle and gathering their scattered disciples.",
       "branded the popular teachings of the late {target} as a dangerous heresy, sparking an ideological split."
+    ],
+    "God-Emissary": [
+      "fell to their knees in the grand square of {capital}, declaring to the masses that {target} truly wielded direct celestial authority."
     ]
   },
   Inventor: {
     Inventor: [
       "perfected the initial, flawed mechanical blue-prints left behind in {capital} by the brilliant {target}.",
       "constructed a massive public monument dedicated to the architectural legacies of {target}."
+    ],
+    Shipwright: [
+      "collaborated with {target} to merge breakthrough industrial mechanics with experimental hull designs, establishing total naval supremacy."
+    ]
+  },
+  Alchemist: {
+    "Plague-Doctor": [
+      "worked in a frantic, subterranean lab to mass-produce the synthetic antidotes requested by {target} during the outbreak."
+    ],
+    Necromancer: [
+      "uncovered evidence that {target} was using their specialized chemical reagents to preserve and reanimate decayed tissue."
+    ]
+  },
+  Courtesan: {
+    Ruler: [
+      "became the true power behind the throne of {target}, filtering what reality reached the monarch's ears."
+    ],
+    Regent: [
+      "used unmatched social influence to ensure the high court favored {target}'s temporary grip on power over the true heirs."
+    ],
+    "Rival Claimant": [
+      "secretly funneled court secrets and palace security schedules to the ambitious {target} to assist their provincial uprising."
+    ]
+  },
+  Regent: {
+    "Foundling-Heir": [
+      "frantically deployed agents to suppress the sudden, terrifying rumors that {target} had been found alive in the slums."
+    ],
+    "Rival Claimant": [
+      "used the temporary power of the crown to declare {target} a traitor to the realm, freezing their provincial assets."
+    ]
+  },
+  Blackmailer: {
+    Regent: [
+      "held documented proof of {target}'s illegal treasury liquidations, completely dictating state policy from the shadows."
+    ],
+    Courtesan: [
+      "intercepted a cache of private letters that completely exposed {target}'s network of high-court spies."
+    ]
+  },
+  "Witch-Hunter": {
+    Archmage: [
+      "spent an entire career building a specialized iron-clad unit specifically to hunt down and dismantle {target}'s sovereign arcane enclave."
+    ],
+    "Blood-Mage": [
+      "left a trail of ashes across the frontier while tracking the horrific, sacrifice-fueled rituals performed by {target}."
+    ],
+    Necromancer: [
+      "tracked the sulfurous wake of {target} across three separate provinces, arriving just hours too late to stop a massive grave desecration."
+    ]
+  },
+  "Scullery-Spy": {
+    "Grand Vizier": [
+      "while scrubbing the palace kitchens, overheard {target} plotting to poison the minds of the royal heirs."
+    ],
+    Assassin: [
+      "unwittingly aided {target} by unlocking a hidden servant's corridor that led directly to a corrupt minister's private bedchamber."
+    ],
+    Blackmailer: [
+      "covertly sold scraps of discarded palace correspondence to {target}, completely unaware that the secrets were being used to hold the high council hostage."
+    ]
+  },
+  "Sin-Eater": {
+    Ruler: [
+      "was brought to the royal deathbed in absolute secrecy to absorb the lifetime of hidden atrocities committed by {target}."
+    ],
+    Usurper: [
+      "nearly collapsed under the sheer weight of spiritual corruption when forced to ingest the sins of the blood-stained {target}."
+    ],
+    "Blood-Mage": [
+      "discovered that the horrific spiritual stain left on souls by {target}'s sacrifice-fueled sorcery was entirely immune to their cleansing rituals."
+    ]
+  },
+  Slayer: {
+    Astronomer: [
+      "used the precise celestial coordinates tracked by {target} to locate and slay a cosmic apex beast before it could descend on the lowlands."
+    ],
+    Necromancer: [
+      "was contracted by the high council to hunt down and permanently put to rest the unnatural, reanimated monstrosities unleashed by {target}."
+    ]
+  },
+  "Messenger-Runner": {
+    "Gate-Keeper": [
+      "collapsed into the dust at the frontier checkpoint, delivering a world-altering warning to {target} just seconds before the perimeter was breached."
+    ],
+    Regent: [
+      "was intercepted on the road by agents of {target} who tried to violently suppress the emergency succession scrolls they carried."
+    ]
+  },
+  Smuggler: {
+    Magistrate: [
+      "spent years playing a high-stakes game of cat-and-mouse with {target}, constantly adapting subterranean trade routes to evade their court tariffs."
+    ],
+    "Rival Claimant": [
+      "was paid a massive fortune to covertly transport a personal militia raised by {target} across the heavily locked-down provincial borders."
+    ],
+    "Gate-Keeper": [
+      "covertly study the exact guard rotation schedule of {target} to perfectly time the midnight running of their subterranean trade vessels."
+    ]
+  },
+  Necromancer: {
+    "Oath-Sworn Knight": [
+      "desecrated the historic blood vows of {target} by raising their fallen vanguard brothers to serve as mindless thralls."
+    ]
+  },
+  "Oath-Sworn Knight": {
+    "Chosen One": [
+      "bound their life and blade to an immutable, cosmic vow to serve as the personal vanguard protector of {target}."
+    ],
+    Usurper: [
+      "refused to break their ancestral oath to the old dynasty, launching a legendary but suicidal solo charge against the throne room of {target}."
+    ]
+  },
+  "Gate-Keeper": {
+    Defector: [
+      "risked immediate execution for treason by quietly unlocking the midnight postern gate to grant asylum to the fleeing {target}."
+    ],
+    Smuggler: [
+      "was outsmarted for years by {target}, who used a complex series of false bottoms in flour barrels to slip contraband right past the city gates."
+    ]
+  },
+  "Chosen One": {
+    "God-Emissary": [
+      "was guided through a series of grueling trial rituals by {target} to fully awaken the mythic destiny dormant in their blood."
+    ],
+    Usurper: [
+      "was forced into hiding as a child after {target} seized the crown and ordered the systematic extermination of everyone bearing the prophetic mark."
+    ]
+  },
+  "Stable-Hand": {
+    Usurper: [
+      "severely crippled the offensive momentum of {target}'s palace coup by spiking the water troughs of their elite heavy cavalry horses."
+    ]
+  },
+  "Double Agent": {
+    "Grand Vizier": [
+      "spent months engineering a flawless, falsified paper trail to convince {target} that a non-existent military threat was mobilizing on the frontier."
+    ]
+  },
+  "Grand Vizier": {
+    "Scullery-Spy": [
+      "instituted a brutal purge of the palace domestic staff after realizing a nameless servant had been leaking high-level administrative secrets."
+    ]
+  },
+  Shipwright: {
+    Smuggler: [
+      "discovered that a rogue segment of their custom hull designs had been stolen and heavily modified by {target} for high-speed blockade running."
+    ]
+  },
+  Astronomer: {
+    Archmage: [
+      "noted a terrifying, localized distortion in the stellar alignment right at the exact moment {target} unleashed their monumental display of power."
+    ]
+  },
+  "Plague-Doctor": {
+    "Blood-Mage": [
+      "realized with absolute horror that the bio-magical rot sweeping the slums was the direct side-effect of a botched ritual performed by {target}."
+    ]
+  },
+  "Rival Claimant": {
+    "Foundling-Heir": [
+      "spent an immense fortune to manufacture a fraudulent birthmark, aiming to completely discredit the sudden popular legitimacy of {target}."
+    ]
+  },
+  "Foundling-Heir": {
+    "Oath-Sworn Knight": [
+      "was pulled from a life of destitution in the slums after {target} knelt before them, presenting the shattered remains of their family crest."
     ]
   }
 };
@@ -820,7 +1008,7 @@ const FIGURE_TEMPLATES: Record<FigureRole, string[]> = {
     "survived a brutal political purge and lived as a ghost in the alleys of {capital}, quietly manipulating local street guilds."
   ],
   // --- NEW UNCONVENTIONAL ROLES ---
-Lawgiver: [
+  Lawgiver: [
     "carved a foundational legal code onto stone monoliths in {capital}, shaping the justice system of {state} for centuries.",
     "instituted a radical set of civil ordinances that stripped corrupt judges of their traditional privileges.",
     "drafted the historic property charters that permanently reallocated ancestral lands from the crown to the common workforce of {state}.",
