@@ -11,24 +11,24 @@ type HistoricalEventType =
   | "founding"
   | "figure"
   | "ruler"
-  | "scandal"          // Internal court drama, illegitimate heirs
-  | "conspiracy"       // Assassinations, failed coups, secret pacts
+  | "scandal" // Internal court drama, illegitimate heirs
+  | "conspiracy" // Assassinations, failed coups, secret pacts
   | "war"
   | "peace"
   | "rebellion"
   | "holy-war"
-  | "disaster"         // Famines, fires, volcanic eruptions
-  | "plague"           // Pandemics, localized contagions affecting population
-  | "anomaly"          // Comets, omens, unexplained phenomena
+  | "disaster" // Famines, fires, volcanic eruptions
+  | "plague" // Pandemics, localized contagions affecting population
+  | "anomaly" // Comets, omens, unexplained phenomena
   | "golden-age"
-  | "renaissance"      // Inventions, artistic/philosophical movements, universities
-  | "infrastructure"   // Great walls, highways, grand cathedrals, aqueducts
-  | "discovery"        // Lost ruins found, uncharted territory explored
+  | "renaissance" // Inventions, artistic/philosophical movements, universities
+  | "infrastructure" // Great walls, highways, grand cathedrals, aqueducts
+  | "discovery" // Lost ruins found, uncharted territory explored
   | "religious"
   | "schism"
   | "diplomacy_memory"
-  | "economic"         // Added to align with the dynamic economic ledger system outputs
-  | "demographic";     // Mass migrations, refugee influxes, population collapses
+  | "economic" // Added to align with the dynamic economic ledger system outputs
+  | "demographic"; // Mass migrations, refugee influxes, population collapses
 
 export interface HistoricalEvent {
   year: number;
@@ -58,7 +58,57 @@ export type FigureRole =
   | "Healer"
   | "General"
   | "Architect"
-  | "Outcast";
+  | "Outcast"
+  // --- NEW UNCONVENTIONAL ROLES ---
+  | "Lawgiver"          // Writers of ancient legal codes
+  | "Chronicler"        // Historians whose records shape the past
+  | "Diplomat"          // Envoys who averted wars or made alliances
+  | "Martyr"            // Figures whose tragic deaths triggered massive movements
+  | "Pretender"         // False heirs who destabilized thrones
+  | "Outlaw Folk-Hero"  // Loved by the people, hunted by the crown
+  | "Oracle"            // Prophetic mystics guiding major state decisions
+  | "Champion"          // Iconic duelists, blademasters, or folk warriors
+  | "Inquisitor"        // Zealots who root out internal subversion or heresy
+  | "Cartographer"      // Mapmakers who unlocked frontiers or war plans
+  | "Alchemist"         // Discoverers of volatile substances or early medicines
+  | "Courtesan"         // Socialites influencing rulers from behind the scenes
+  | "Smuggler"          // Blockade-runners who defined shadow economies
+  | "Shipwright"        // Engineers who revolutionized naval dominance
+  | "Astronomer"        // Stargazers predicting cataclysms or tracking omens
+  | "Magistrate"       // Judges whose arbitration settled historic feuds
+  // --- INTRIGUE & COURT SHADOWS ---
+  | "Regent"            // Holds temporary power, hates to give it up
+  | "Usurper"           // Stole the crown, forever looking over their shoulder
+  | "Rival Claimant"    // The ambitious sibling or bastard eyeing the throne
+  | "Grand Vizier"      // The power behind the throne, filtering information
+  | "Defector"          // Traitor to one nation, asset to another
+  | "Assassin"          // Surgical political removal specialists
+  | "Double Agent"      // Infiltrators playing both sides of a shadow war
+  | "Exile-Plotter"     // Banished nobles orchestrating a comeback from afar
+  | "Heresiarch"        // Leaders of forbidden, subversive underground sects
+  | "Blackmailer"      // Holds the dirty laundry of the ruling elite
+  // --- HIGH FANTASY (EPIC & ARCANE) ---
+  | "Chosen One"        // Prophesied figures carrying the fate of the world
+  | "Archmage"          // Master spellcasters whose magic alters reality
+  | "God-Emissary"      // Living avatars or divine envoys guiding mortals
+  | "Relic-Keeper"      // Guardians of world-ending ancient artifacts
+  | "Oath-Sworn Knight" // Warriors magically bound to an unyielding cosmic vow
+  // --- GRIM FANTASY (DARK & GRITTY) ---
+  | "Witch-Hunter"      // Brutal zealots purging arcane or demonic corruption
+  | "Necromancer"       // Pariahs who break the ultimate taboo of death magic
+  | "Plague-Doctor"     // Grim medics managing bio-magical catastrophes
+  | "Blood-Mage"        // Users of outlawed, sacrifice-fueled sorcery
+  | "Slayer"            // Monster-hunting mercenaries scarred by the dark
+  | "Sin-Eater"        // Outcasts who absorb spiritual corruption from the dead
+  // --- HUMBLE ORIGINS & ACCIDENTAL HEROES ---
+  | "Gate-Keeper"       // Lowly guards whose single action saved or lost a city
+  | "Scullery-Spy"      // Overlooked servants who overheard world-altering secrets
+  | "Conscript-Hero"    // Commoners who accidentally slew commanders in battle
+  | "Foundling-Heir"    // Urchins revealed to be vital keys to a broken throne
+  | "Messenger-Runner"  // Couriers whose desperate sprints saved entire armies
+  | "Stable-Hand"       // Laborers at crucial bottlenecks changing a king's fate
+  | "Hermit-Prophet";   // Outcasts whose unexpected warnings saved civilizations
+
 
 export interface NotableFigure {
   name: string;
@@ -276,7 +326,7 @@ const FOUNDING_TEMPLATES: Record<string, string[]> = {
 };
 
 // religion founding narrative, keyed by religion.type; {culture} and {deity} are filled in,
-// with {deity} falling back to a generic phrase for faiths without a named deity 
+// with {deity} falling back to a generic phrase for faiths without a named deity
 const RELIGION_FOUNDING_TEMPLATES: Record<string, string[]> = {
   Folk: [
     "took root organically among the {culture} people, growing out of ancestral rites and oral tradition rather than any single prophet.",
@@ -330,22 +380,26 @@ const FLAVOR_EVENTS: Record<
   Renaissance: {
     type: "renaissance", // Refined to new type
     title: "A Cultural Renaissance",
-    text: state => `Artists and scholars flocked to ${state.capital}, ushering in a renaissance of learning, philosophy, and classical art.`
+    text: state =>
+      `Artists and scholars flocked to ${state.capital}, ushering in a renaissance of learning, philosophy, and classical art.`
   },
   Plague: {
     type: "plague", // Refined to new type
     title: "The Great Plague",
-    text: state => `A devastating plague swept through ${state.name}, emptying towns, halting local trade, and leaving fields untended.`
+    text: state =>
+      `A devastating plague swept through ${state.name}, emptying towns, halting local trade, and leaving fields untended.`
   },
   Famine: {
     type: "disaster",
     title: "Years of Famine",
-    text: state => `Consecutive poor harvests brought widespread famine to ${state.name}, testing the resolve of its people.`
+    text: state =>
+      `Consecutive poor harvests brought widespread famine to ${state.name}, testing the resolve of its people.`
   },
   "Great Fire": {
     type: "disaster",
     title: "The Great Fire",
-    text: state => `A catastrophic fire tore through the densely packed districts of ${state.capital}, forcing much of the city to be rebuilt in stone.`
+    text: state =>
+      `A catastrophic fire tore through the densely packed districts of ${state.capital}, forcing much of the city to be rebuilt in stone.`
   },
   "Religious Reform": {
     type: "religious",
@@ -356,53 +410,62 @@ const FLAVOR_EVENTS: Record<
   Rebellion: {
     type: "rebellion",
     title: "Popular Uprising",
-    text: state => `Discontent among the overtaxed peasantry boiled over into open rebellion against the rulers of ${state.name}.`
+    text: state =>
+      `Discontent among the overtaxed peasantry boiled over into open rebellion against the rulers of ${state.name}.`
   },
 
   // --- NEW DOMESTIC & SOCIAL EVENTS ---
   "Court Scandal": {
     type: "scandal",
     title: "A Whispered Scandal",
-    text: state => `The court at ${state.capital} was shaken to its core when the rightful heir to ${state.name} was exposed as illegitimate, fracturing the loyalty of the nobles.`
+    text: state =>
+      `The court at ${state.capital} was shaken to its core when the rightful heir to ${state.name} was exposed as illegitimate, fracturing the loyalty of the nobles.`
   },
   "Failed Coup": {
     type: "conspiracy",
     title: "The Silent Coup",
-    text: state => `A shadowy cabal of disgruntled military officers attempted to assassinate the leadership of ${state.name} in their sleep, but the plot was betrayed at the final hour.`
+    text: state =>
+      `A shadowy cabal of disgruntled military officers attempted to assassinate the leadership of ${state.name} in their sleep, but the plot was betrayed at the final hour.`
   },
   "Refugee Influx": {
     type: "demographic",
     title: "The Great Migration",
-    text: state => `A massive wave of displaced families from war-torn neighboring lands crossed the borders of ${state.name}, changing the demography and labor force forever.`
+    text: state =>
+      `A massive wave of displaced families from war-torn neighboring lands crossed the borders of ${state.name}, changing the demography and labor force forever.`
   },
 
   // --- NEW CIVILIZATIONAL & INFRASTRUCTURE EVENTS ---
   "Grand Monument": {
     type: "infrastructure",
     title: "The Great Work",
-    text: state => `To projecting their immortal majesty, the rulers of ${state.name} completed a staggering architectural marvel in ${state.capital} that dominated the skyline.`
+    text: state =>
+      `To projecting their immortal majesty, the rulers of ${state.name} completed a staggering architectural marvel in ${state.capital} that dominated the skyline.`
   },
   "Border Defense": {
     type: "infrastructure",
     title: "The Iron Wall",
-    text: state => `Fearing aggression, ${state.name} poured vast treasury reserves into constructing a formidable chain of frontier fortresses and watchtowers.`
+    text: state =>
+      `Fearing aggression, ${state.name} poured vast treasury reserves into constructing a formidable chain of frontier fortresses and watchtowers.`
   },
   "Expedition Success": {
     type: "discovery",
     title: "Uncharted Frontiers",
-    text: state => `A state-sponsored expedition returned to ${state.capital} after traversing the deep wilderness, bearing exotic maps and tales of lost ancient ruins.`
+    text: state =>
+      `A state-sponsored expedition returned to ${state.capital} after traversing the deep wilderness, bearing exotic maps and tales of lost ancient ruins.`
   },
 
   // --- NEW UNPREDICTABLE FORCES ---
   "Celestial Omen": {
     type: "anomaly",
     title: "The Heaven's Wrath",
-    text: state => `A brilliant, blood-red comet split the night sky over ${state.name}. Panic gripped the populace, who interpreted it as a dark omen of coming doom.`
+    text: state =>
+      `A brilliant, blood-red comet split the night sky over ${state.name}. Panic gripped the populace, who interpreted it as a dark omen of coming doom.`
   },
   "Year of Frost": {
     type: "anomaly",
     title: "The Endless Winter",
-    text: state => `An unexplainable global cooling caused snow to fall in midsummer across ${state.name}, completely destroying the year's agricultural cycle.`
+    text: state =>
+      `An unexplainable global cooling caused snow to fall in midsummer across ${state.name}, completely destroying the year's agricultural cycle.`
   }
 };
 
@@ -412,7 +475,66 @@ const LEGEND_FORMS = [
   "the Tribes of {name}",
   "the {name} Dominion",
   "Old {name}",
-  "the {name} Hegemony"
+  "the {name} Hegemony",
+  "the Bands of {name}",
+  "the {name} Alliance",
+  "the {name} Empire",
+  "the {name} Brotherhood",
+  "the {name} Union",
+  "the {name} Federation",
+  "the {name} Collective",
+  "the {name} Concordat",
+  "the {name} Protectorate",
+  "the {name} Principality",
+  // --- NEW CLASSICAL & ADMINISTRATIVE ---
+  "the {name} Imperium",
+  "the Satrapy of {name}",
+  "the Commonwealth of {name}",
+  "the Directorship of {name}",
+  // --- NEW MYSTICAL & SACRED ---
+  "the Theocracy of {name}",
+  "the Sacred Concordat of {name}",
+  "the Sovereign Enclave of {name}",
+  "the {name} Archonate",
+  "the {name} Hierarchy",
+  "the {name} Sanctum",
+  "the {name} Celestial Order",
+  "the {name} Divine Assembly",
+  "the {name} Oracle",
+  "the {name} Sacred Circle",
+  "the {name} Holy See",
+  "the {name} Temple-State",
+  // --- NEW MERCHANT & TRADE-BASED ---
+  "the Merchant Guild of {name}",
+  "the Trade Consortium of {name}",
+  "the Mercantile League of {name}",
+  "the Commercial Syndicate of {name}",
+  "the Bazaar Confederation of {name}",
+  "the Market Alliance of {name}",
+  "the Trading Company of {name}",
+  // --- NEW MILITARY & STRATEGIC ---
+  "the Fortress of {name}",
+  "the Citadel of {name}",
+  "the Bastion of {name}",
+  "the Garrison of {name}",
+  "the Watch of {name}",
+  "the Vanguard of {name}",
+  "the Legion of {name}",
+  "the Armada of {name}",
+  "the Phalanx of {name}",
+  "the Cohort of {name}",
+  "the Brigade of {name}",
+  "the Squadron of {name}",
+  "the Regiment of {name}",
+  "the Battalion of {name}",
+  "the Division of {name}",
+  "the Command of {name}",
+  "the Outpost of {name}",
+  // --- NEW SEAFARING & ALLIANCE-BASED ---
+  "the {name} Thalassocracy",
+  "the Hanseatic League of {name}",
+  "the Greater Clans of {name}",
+  "the Grand Khanate of {name}"
 ];
 
 const LEGEND_DOWNFALLS: Record<string, (entity: string) => string> = {
@@ -422,7 +544,44 @@ const LEGEND_DOWNFALLS: Record<string, (entity: string) => string> = {
   Plague: entity => `A great plague emptied the halls of ${entity}, and its people scattered to find safer ground.`,
   Drought: entity => `Years of drought withered the fields of ${entity}, forcing its people to abandon their homeland.`,
   Schism: entity => `${entity} fractured as its people split over rival faiths, never to reunite as one.`,
-  Migration: entity => `${entity} was slowly abandoned as its people migrated in search of richer lands.`
+  Migration: entity => `${entity} was slowly abandoned as its people migrated in search of richer lands.`,
+
+  // --- NEW ADVANCED DOWNFALLS ---
+  Deluge: entity => 
+    `A sudden, catastrophic shift in the regional waterways swallowed the lowlands of ${entity}, drowning its capital and burying its wealth beneath the mud.`,
+  "The Ash Awakening": entity => 
+    `The mountains spoke in fire, choking the skies above ${entity} with ash for a decade and turning its once-fertile valleys into a permanent grey wasteland.`,
+  Decadence: entity => 
+    `The rulers of ${entity} grew blind with luxury and bloated by bureaucracy, leaving the borders undefended until the entire administrative machine quietly dissolved.`,
+  "Economic Crash": entity => 
+    `A sudden, inexplicable collapse of core trade routes devalued the wealth of ${entity}, sparking an economic ruin that starved its grand cities faster than any invading army.`,
+  "Thrall Revolt": entity => 
+    `The lower classes and bond-servants who built the monuments of ${entity} rose up in unison, burning the grand archives and erasing all memory of their masters.`,
+  Hubris: entity => 
+    `In their pursuit of forbidden secrets, the leadership of ${entity} brought down a terrible curse that caused their people to forget their own language and flee into the wilds.`,
+  "The Waning": entity => 
+    `A strange, creeping despair settled over the cradles of ${entity}; over three generations, fewer and fewer children were born until only the elderly remained to guard empty palaces.`,
+  // --- HISTORICALLY INSPIRED COLLAPSES ---
+  "Systemic Collapse": entity => 
+    `${entity} fell not to a single foe, but to a cascading failure of the world's trade lines; when its neighboring allies collapsed, its own fragile economy shattered, triggering a sudden dark age.`,
+  "Ecological Ruin": entity => 
+    `${entity} brought about its own doom by stripping its forests and exhausting its soil to feed its great cities, leaving a barren wasteland where nothing could grow.`,
+  "The Veil of Ash": entity => 
+    `A distant, thunderous mountain eruption choked the skies of ${entity} with a permanent winter; with the sun hidden for years, the crops failed, and the starving populace turned on one another.`,
+  "The Strangled Cradle": entity => 
+    `The very rivers that sustained ${entity} became its undoing, slowly choking its grand harbors with silt and turning its fertile fields into a poisoned, salty desert.`,
+  "The Quiet Abandonment": entity => 
+    `A silent, creeping exhaustion overtook the cities of ${entity}; without a war or a burning fire, its people simply walked away, leaving their grand architectures to be reclaimed by the dust.`,
+  "The Great Betrayal": entity => 
+    `The unassailable walls of ${entity} never fell to siege; instead, a trusted inner faction secretly unbolted the city gates at midnight, letting an eager foe butcher the sleeping empire.`,
+  "The Vanishing": entity => 
+    `A silent, chilling mystery took the people of ${entity}; overnight, every soul vanished from its bustling streets, leaving grand feasts on tables and gold in the vaults, but not a single body behind.`,
+  "The Erasure": entity => 
+    `For reasons lost to time, the inhabitants of ${entity} systematically set fire to their own beautiful cities, burning centuries of history to ash before walking into the wild with nothing but their clothes.`,
+  "The Day of Shadows": entity => 
+    `A sudden, contagious madness gripped the minds of ${entity}; in a single afternoon of terror, the populace destroyed their own monuments, forgot their own names, and scattered into the woods like beasts.`,
+  "The Forgotten Curse": entity => 
+    `A dark, ancient taboo was violated by the kings of ${entity}, invoking a forgotten curse that soured the milk, turned the well-waters to rust, and drove a once-proud populace to tear down their own palace walls out of sheer, unholy terror.`
 };
 
 const ANCIENT_ERAS: AncientEra[] = [
