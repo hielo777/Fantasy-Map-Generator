@@ -60,55 +60,54 @@ export type FigureRole =
   | "Architect"
   | "Outcast"
   // --- NEW UNCONVENTIONAL ROLES ---
-  | "Lawgiver"          // Writers of ancient legal codes
-  | "Chronicler"        // Historians whose records shape the past
-  | "Diplomat"          // Envoys who averted wars or made alliances
-  | "Martyr"            // Figures whose tragic deaths triggered massive movements
-  | "Pretender"         // False heirs who destabilized thrones
-  | "Outlaw Folk-Hero"  // Loved by the people, hunted by the crown
-  | "Oracle"            // Prophetic mystics guiding major state decisions
-  | "Champion"          // Iconic duelists, blademasters, or folk warriors
-  | "Inquisitor"        // Zealots who root out internal subversion or heresy
-  | "Cartographer"      // Mapmakers who unlocked frontiers or war plans
-  | "Alchemist"         // Discoverers of volatile substances or early medicines
-  | "Courtesan"         // Socialites influencing rulers from behind the scenes
-  | "Smuggler"          // Blockade-runners who defined shadow economies
-  | "Shipwright"        // Engineers who revolutionized naval dominance
-  | "Astronomer"        // Stargazers predicting cataclysms or tracking omens
-  | "Magistrate"       // Judges whose arbitration settled historic feuds
+  | "Lawgiver" // Writers of ancient legal codes
+  | "Chronicler" // Historians whose records shape the past
+  | "Diplomat" // Envoys who averted wars or made alliances
+  | "Martyr" // Figures whose tragic deaths triggered massive movements
+  | "Pretender" // False heirs who destabilized thrones
+  | "Outlaw Folk-Hero" // Loved by the people, hunted by the crown
+  | "Oracle" // Prophetic mystics guiding major state decisions
+  | "Champion" // Iconic duelists, blademasters, or folk warriors
+  | "Inquisitor" // Zealots who root out internal subversion or heresy
+  | "Cartographer" // Mapmakers who unlocked frontiers or war plans
+  | "Alchemist" // Discoverers of volatile substances or early medicines
+  | "Courtesan" // Socialites influencing rulers from behind the scenes
+  | "Smuggler" // Blockade-runners who defined shadow economies
+  | "Shipwright" // Engineers who revolutionized naval dominance
+  | "Astronomer" // Stargazers predicting cataclysms or tracking omens
+  | "Magistrate" // Judges whose arbitration settled historic feuds
   // --- INTRIGUE & COURT SHADOWS ---
-  | "Regent"            // Holds temporary power, hates to give it up
-  | "Usurper"           // Stole the crown, forever looking over their shoulder
-  | "Rival Claimant"    // The ambitious sibling or bastard eyeing the throne
-  | "Grand Vizier"      // The power behind the throne, filtering information
-  | "Defector"          // Traitor to one nation, asset to another
-  | "Assassin"          // Surgical political removal specialists
-  | "Double Agent"      // Infiltrators playing both sides of a shadow war
-  | "Exile-Plotter"     // Banished nobles orchestrating a comeback from afar
-  | "Heresiarch"        // Leaders of forbidden, subversive underground sects
-  | "Blackmailer"      // Holds the dirty laundry of the ruling elite
+  | "Regent" // Holds temporary power, hates to give it up
+  | "Usurper" // Stole the crown, forever looking over their shoulder
+  | "Rival Claimant" // The ambitious sibling or bastard eyeing the throne
+  | "Grand Vizier" // The power behind the throne, filtering information
+  | "Defector" // Traitor to one nation, asset to another
+  | "Assassin" // Surgical political removal specialists
+  | "Double Agent" // Infiltrators playing both sides of a shadow war
+  | "Exile-Plotter" // Banished nobles orchestrating a comeback from afar
+  | "Heresiarch" // Leaders of forbidden, subversive underground sects
+  | "Blackmailer" // Holds the dirty laundry of the ruling elite
   // --- HIGH FANTASY (EPIC & ARCANE) ---
-  | "Chosen One"        // Prophesied figures carrying the fate of the world
-  | "Archmage"          // Master spellcasters whose magic alters reality
-  | "God-Emissary"      // Living avatars or divine envoys guiding mortals
-  | "Relic-Keeper"      // Guardians of world-ending ancient artifacts
+  | "Chosen One" // Prophesied figures carrying the fate of the world
+  | "Archmage" // Master spellcasters whose magic alters reality
+  | "God-Emissary" // Living avatars or divine envoys guiding mortals
+  | "Relic-Keeper" // Guardians of world-ending ancient artifacts
   | "Oath-Sworn Knight" // Warriors magically bound to an unyielding cosmic vow
   // --- GRIM FANTASY (DARK & GRITTY) ---
-  | "Witch-Hunter"      // Brutal zealots purging arcane or demonic corruption
-  | "Necromancer"       // Pariahs who break the ultimate taboo of death magic
-  | "Plague-Doctor"     // Grim medics managing bio-magical catastrophes
-  | "Blood-Mage"        // Users of outlawed, sacrifice-fueled sorcery
-  | "Slayer"            // Monster-hunting mercenaries scarred by the dark
-  | "Sin-Eater"        // Outcasts who absorb spiritual corruption from the dead
+  | "Witch-Hunter" // Brutal zealots purging arcane or demonic corruption
+  | "Necromancer" // Pariahs who break the ultimate taboo of death magic
+  | "Plague-Doctor" // Grim medics managing bio-magical catastrophes
+  | "Blood-Mage" // Users of outlawed, sacrifice-fueled sorcery
+  | "Slayer" // Monster-hunting mercenaries scarred by the dark
+  | "Sin-Eater" // Outcasts who absorb spiritual corruption from the dead
   // --- HUMBLE ORIGINS & ACCIDENTAL HEROES ---
-  | "Gate-Keeper"       // Lowly guards whose single action saved or lost a city
-  | "Scullery-Spy"      // Overlooked servants who overheard world-altering secrets
-  | "Conscript-Hero"    // Commoners who accidentally slew commanders in battle
-  | "Foundling-Heir"    // Urchins revealed to be vital keys to a broken throne
-  | "Messenger-Runner"  // Couriers whose desperate sprints saved entire armies
-  | "Stable-Hand"       // Laborers at crucial bottlenecks changing a king's fate
-  | "Hermit-Prophet";   // Outcasts whose unexpected warnings saved civilizations
-
+  | "Gate-Keeper" // Lowly guards whose single action saved or lost a city
+  | "Scullery-Spy" // Overlooked servants who overheard world-altering secrets
+  | "Conscript-Hero" // Commoners who accidentally slew commanders in battle
+  | "Foundling-Heir" // Urchins revealed to be vital keys to a broken throne
+  | "Messenger-Runner" // Couriers whose desperate sprints saved entire armies
+  | "Stable-Hand" // Laborers at crucial bottlenecks changing a king's fate
+  | "Hermit-Prophet"; // Outcasts whose unexpected warnings saved civilizations
 
 export interface NotableFigure {
   name: string;
@@ -547,40 +546,40 @@ const LEGEND_DOWNFALLS: Record<string, (entity: string) => string> = {
   Migration: entity => `${entity} was slowly abandoned as its people migrated in search of richer lands.`,
 
   // --- NEW ADVANCED DOWNFALLS ---
-  Deluge: entity => 
+  Deluge: entity =>
     `A sudden, catastrophic shift in the regional waterways swallowed the lowlands of ${entity}, drowning its capital and burying its wealth beneath the mud.`,
-  "The Ash Awakening": entity => 
+  "The Ash Awakening": entity =>
     `The mountains spoke in fire, choking the skies above ${entity} with ash for a decade and turning its once-fertile valleys into a permanent grey wasteland.`,
-  Decadence: entity => 
+  Decadence: entity =>
     `The rulers of ${entity} grew blind with luxury and bloated by bureaucracy, leaving the borders undefended until the entire administrative machine quietly dissolved.`,
-  "Economic Crash": entity => 
+  "Economic Crash": entity =>
     `A sudden, inexplicable collapse of core trade routes devalued the wealth of ${entity}, sparking an economic ruin that starved its grand cities faster than any invading army.`,
-  "Thrall Revolt": entity => 
+  "Thrall Revolt": entity =>
     `The lower classes and bond-servants who built the monuments of ${entity} rose up in unison, burning the grand archives and erasing all memory of their masters.`,
-  Hubris: entity => 
+  Hubris: entity =>
     `In their pursuit of forbidden secrets, the leadership of ${entity} brought down a terrible curse that caused their people to forget their own language and flee into the wilds.`,
-  "The Waning": entity => 
+  "The Waning": entity =>
     `A strange, creeping despair settled over the cradles of ${entity}; over three generations, fewer and fewer children were born until only the elderly remained to guard empty palaces.`,
   // --- HISTORICALLY INSPIRED COLLAPSES ---
-  "Systemic Collapse": entity => 
+  "Systemic Collapse": entity =>
     `${entity} fell not to a single foe, but to a cascading failure of the world's trade lines; when its neighboring allies collapsed, its own fragile economy shattered, triggering a sudden dark age.`,
-  "Ecological Ruin": entity => 
+  "Ecological Ruin": entity =>
     `${entity} brought about its own doom by stripping its forests and exhausting its soil to feed its great cities, leaving a barren wasteland where nothing could grow.`,
-  "The Veil of Ash": entity => 
+  "The Veil of Ash": entity =>
     `A distant, thunderous mountain eruption choked the skies of ${entity} with a permanent winter; with the sun hidden for years, the crops failed, and the starving populace turned on one another.`,
-  "The Strangled Cradle": entity => 
+  "The Strangled Cradle": entity =>
     `The very rivers that sustained ${entity} became its undoing, slowly choking its grand harbors with silt and turning its fertile fields into a poisoned, salty desert.`,
-  "The Quiet Abandonment": entity => 
+  "The Quiet Abandonment": entity =>
     `A silent, creeping exhaustion overtook the cities of ${entity}; without a war or a burning fire, its people simply walked away, leaving their grand architectures to be reclaimed by the dust.`,
-  "The Great Betrayal": entity => 
+  "The Great Betrayal": entity =>
     `The unassailable walls of ${entity} never fell to siege; instead, a trusted inner faction secretly unbolted the city gates at midnight, letting an eager foe butcher the sleeping empire.`,
-  "The Vanishing": entity => 
+  "The Vanishing": entity =>
     `A silent, chilling mystery took the people of ${entity}; overnight, every soul vanished from its bustling streets, leaving grand feasts on tables and gold in the vaults, but not a single body behind.`,
-  "The Erasure": entity => 
+  "The Erasure": entity =>
     `For reasons lost to time, the inhabitants of ${entity} systematically set fire to their own beautiful cities, burning centuries of history to ash before walking into the wild with nothing but their clothes.`,
-  "The Day of Shadows": entity => 
+  "The Day of Shadows": entity =>
     `A sudden, contagious madness gripped the minds of ${entity}; in a single afternoon of terror, the populace destroyed their own monuments, forgot their own names, and scattered into the woods like beasts.`,
-  "The Forgotten Curse": entity => 
+  "The Forgotten Curse": entity =>
     `A dark, ancient taboo was violated by the kings of ${entity}, invoking a forgotten curse that soured the milk, turned the well-waters to rust, and drove a once-proud populace to tear down their own palace walls out of sheer, unholy terror.`
 };
 
@@ -819,6 +818,319 @@ const FIGURE_TEMPLATES: Record<FigureRole, string[]> = {
     "wandered the frontier wastes for forty years, returning to warn the cities of a massive, cyclical climate crisis.",
     "exiled for uncovering political corruption, they became an international folk icon writing letters from a foreign land.",
     "survived a brutal political purge and lived as a ghost in the alleys of {capital}, quietly manipulating local street guilds."
+  ],
+  // --- NEW UNCONVENTIONAL ROLES ---
+Lawgiver: [
+    "carved a foundational legal code onto stone monoliths in {capital}, shaping the justice system of {state} for centuries.",
+    "instituted a radical set of civil ordinances that stripped corrupt judges of their traditional privileges.",
+    "drafted the historic property charters that permanently reallocated ancestral lands from the crown to the common workforce of {state}.",
+    "established a system of public tribunals in {capital}, ensuring even the highest nobility could be held accountable for treason.",
+    "authored the sacred maritime treaties that normalized trade tariffs and effectively ended piracy across the waters of {state}."
+  ],
+  Chronicler: [
+    "penned the definitive historical record of {state}, quietly erasing or highlighting dynasties to shape political legacies.",
+    "traveled the provinces to compile the ancestral genealogies of the {culture} people.",
+    "preserved a hidden cache of forbidden records in {capital}, documenting the dark truths the current regime tried to burn.",
+    "recorded the final, dying words of frontline soldiers during the great expansion, creating an epic anthology that defined {culture} patriotism.",
+    "exposed a massive chronological forgery in the royal archives, proving the current ruling house of {state} had no legal claim to the throne."
+  ],
+  Diplomat: [
+    "brokered a historic non-aggression pact that narrowly averted a catastrophic conflict between {state} and its neighbors.",
+    "negotiated the complex territorial treaties that established the modern borders of {state}.",
+    "spent years embedded in a hostile foreign court, quietly turning key ministers against their own war-hawks to protect {state}.",
+    "defused a volatile international crisis in {capital} by orchestrating a high-profile political marriage between rival dynasties.",
+    "secured exclusive, lucrative trade monopolies with distant merchants, enriching the merchant guilds of {state} overnight."
+  ],
+  Martyr: [
+    "whose public execution in {capital} ignited a firestorm of civil unrest, unifying fractured factions overnight.",
+    "became an enduring symbol of sacrifice, whose final defiant words inspired generations of {culture} songs.",
+    "refused to recant their political philosophy under extreme torture, hardening the resolve of the underground movement in {state}.",
+    "willingly walked into a deadly trap to buy enough time for the vanguard forces of {state} to evacuate a doomed city.",
+    "was assassinated by corrupt nobility, instantly transforming from a controversial local activist into a sacred icon for the {culture} people."
+  ],
+  Pretender: [
+    "emerged from obscurity claiming to be a lost royal heir, fracturing the military allegiance of {state}.",
+    "waged a bitter shadow campaign to reclaim what they asserted was their stolen birthright.",
+    "convinced the provincial governors of {state} that they were the true successor, nearly triggering a total collapse of the high court.",
+    "forged a flawless ancestral signet ring to legitimize their claim to the throne in {capital}, winning over a massive peasant army.",
+    "gained the backing of a foreign empire, marching on {capital} under a banner that directly challenged the sitting monarch's bloodline."
+  ],
+  "Outlaw Folk-Hero": [
+    "robbed the tax caravans leaving {capital}, distributing the wealth back to the destitute frontier communes.",
+    "eluded the crown's elite bounty hunters for decades, protected entirely by the loyal peasantry of {state}.",
+    "broke into the high dungeons of {capital} to free political prisoners, leaving a mocking signature that humiliated the guard.",
+    "became the subject of countless clandestine tavern ballads across {state} after humiliating a notoriously cruel tax collector.",
+    "negotiated a secret amnesty with a sympathetic general, trading their own freedom for the permanent relief of provincial debts."
+  ],
+  Oracle: [
+    "delivered a chilling, cryptic prophecy that fundamentally redirected the defensive military strategies of {state}.",
+    "guided the crown through a time of severe panic with visions interpreted as divine warnings.",
+    "uttered a final, dying curse from the steps of the grand temple in {capital}, predicting a dynastic collapse that came true to the exact day.",
+    "interpreted a rare celestial alignment, convincing the high council of {state} to call off a disastrous offensive campaign.",
+    "withstood severe political pressure to alter a vision, refusing to falsify a grim omen concerning the ruling family's future."
+  ],
+  Champion: [
+    "slew a rival nation's vanguard leader in a legendary trial by combat, securing an immediate battlefield truce.",
+    "remained undefeated in the grand arenas of {capital}, embodying the martial pride of the {culture} people.",
+    "carried the battered battle standard of {state} through an overwhelming horde, rallying a shattered vanguard to a miraculous victory.",
+    "won the grand tourney in {capital}, using the prize and newfound prestige to petition the crown directly for provincial reforms.",
+    "defended the narrow palace gates during a bloody insurrection, single-handedly matching the elite warriors sent to assassinate the council."
+  ],
+  Inquisitor: [
+    "instituted a ruthless domestic purge to root out internal subversion and treason within the courts.",
+    "hunted down hidden political factions operating out of the shadows of {capital}.",
+    "exposed a high-level network of foreign spies embedded inside the military command structure of {state}.",
+    "commandeered the legal system of {capital}, utilizing aggressive interrogation methods that terrified both the guilty and innocent.",
+    "uncovered a treasonous plot among the provincial governors just days before they could mobilize their private guards against the crown."
+  ],
+  Cartographer: [
+    "drafted the first highly accurate military tactical maps of the frontier, exposing vital weaknesses in enemy territory.",
+    "unlocked the treacherous paths of the deep wilderness, expanding the sovereign claims of {state}.",
+    "discovered a hidden deep-water passage through the coastal reefs, giving the naval fleet of {state} a devastating tactical surprise.",
+    "spent decades mapping the subterranean ruins beneath {capital}, creating a master grid that was instantly classified by the high council.",
+    "proved through precise geographical surveys that a resource-rich border territory legally belonged to {state}, sparking an immediate diplomatic crisis."
+  ],
+  Alchemist: [
+    "perfected a highly volatile incendiary compound that revolutionized siege defense metrics for {state}.",
+    "discovered a crude synthetic antidote that effectively halted a localized contagion.",
+    "transmuted a common base mineral into a highly sought-after industrial catalyst, temporarily rescuing the economy of {state} from bankruptcy.",
+    "was brought before the high court of {capital} under charges of heresy after an experimental elixir permanently altered a noble's physical constitution.",
+    "engineered a slow-acting, completely undetectable poison that became the preferred tool for political liquidations within the shadow networks."
+  ],
+  Courtesan: [
+    "used unparalleled social influence within the high courts of {capital} to quietly manipulate key succession choices.",
+    "acted as the true power behind the throne, filtering what information reached the monarch's ears.",
+    "leveraged pillow-talk secrets from foreign diplomats to dismantle an impending invasion alliance targeting {state}.",
+    "bankrolled a massive network of spies across {capital} using the lavish jewelry and estates gifted to them by infatuated lords.",
+    "orchestrated the quiet, public disgrace of a warmongering general by exposing their private indiscretions to the high council."
+  ],
+  Smuggler: [
+    "engineered a vast underground blockade-running operation that kept vital resources flowing during an economic embargo.",
+    "controlled the subterranean trade networks running beneath the city walls of {capital}.",
+    "devised a genius method of concealing rare contraband inside official diplomatic cargo, compromising several high-ranking officials.",
+    "bribed an entire segment of the city guard in {capital} to look away as an outlawed political faction was safely extracted from the country.",
+    "opened up a treacherous maritime route through jagged shoals, single-handedly breaking the naval encirclement of {state}."
+  ],
+  Shipwright: [
+    "designed a radically optimized hull blueprint that established the absolute naval dominance of {state}.",
+    "pioneered structural engineering methods allowing warships to navigate treacherous deep-water channels.",
+    "constructed a legendary, heavily armored flagship in the shipyards of {capital} that survived three successive naval blockades.",
+    "revolutionized the production line of the shipyards, allowing {state} to rebuild its shattered armada in a fraction of the usual time.",
+    "adapted experimental engineering principles to design shallow-draft transports, enabling vanguard forces to launch surprise river invasions deep into enemy territory."
+  ],
+  Astronomer: [
+    "calculated a precise planetary alignment that successfully predicted a major agricultural shift.",
+    "tracked an unexplainable celestial anomaly, advising the council on strategic actions before panic spread.",
+    "used a custom-built array of lenses in {capital} to accurately predict a solar eclipse, which the military used to terrify an superstitious invading force.",
+    "discovered a fundamental error in the traditional navigational charts of {state}, preventing the merchant fleet from charting a disastrous course.",
+    "penned a highly controversial cosmic treatise that challenged orthodox spiritual doctrines, causing a major intellectual rift in the high court."
+  ],
+  Magistrate: [
+    "arbitrated a multi-generational border feud between the state's most powerful noble houses, preventing a civil war.",
+    "overhauled the local court tariffs to ensure fair trade conditions across the regional markets.",
+    "exposed a systemic ring of embezzlement among the tax collectors of {capital}, recovering a fortune for the depleted treasury.",
+    "defied a direct decree from the high court by granting legal asylum to a controversial political group passing through {state}.",
+    "drafted an unprecedented municipal charter that granted basic civil protections to the migrant labor forces working the frontier mines."
+  ],
+  // --- INTRIGUE & COURT SHADOWS ---
+  Regent: [
+    "held the strings of temporary power during a succession gap, refusing to relinquish control to the rightful heir.",
+    "steered the high council of {state} through a decade of minority rule with a cold, calculating grip.",
+    "liquidated the royal treasury under the guise of an emergency war effort to enrich their own loyalist houses.",
+    "signed a highly controversial peace treaty with an aggressive neighbor before the young monarch could come of age to object.",
+    "systematically isolated the rightful heir from the high court of {capital}, convincing the populace that the youth was unfit to govern."
+  ],
+  Usurper: [
+    "seized the crown through a bloody palace coup, spending their entire reign eliminating potential rivals.",
+    "overthrew the established dynastic line, forever looking over their shoulder for signs of retribution.",
+    "marched an insurrectionist army into {capital}, executing the high council on the palace steps to declare a new imperial era.",
+    "assassinated the entire royal lineage during a state banquet, relying on raw military muscle to suppress the ensuing civilian revolts.",
+    "rewrote the ancestral laws of {state} to legitimize their conquest, rebranding their violent takeover as a divine liberation."
+  ],
+  "Rival Claimant": [
+    "an ambitious sibling of the crown, destabilized the court by raising a massive personal militia in the provinces.",
+    "garnered foreign financial backing to challenge the legitimacy of the sitting monarch of {state}.",
+    "produced a contested deathbed will from the previous ruler, splitting the political loyalties of the high council down the middle.",
+    "used their vast popularity among the common folk of {culture} to openly contest the crown's unfair tax levies from afar.",
+    "staged a dramatic arrival at the coronation ceremony in {capital}, presenting an older, validated bloodline claim that shocked the nobility."
+  ],
+  "Grand Vizier": [
+    "masterfully controlled the flow of imperial paperwork, isolating the ruler from the realities of the realm.",
+    "orchestrated the rise and fall of dozens of minor ministers to protect their own supreme administrative status.",
+    "diverted massive regional tariffs into a private black budget to fund an elite, secret intelligence network loyal only to them.",
+    "manipulated the succession line by poisoning the emperor's mind against his eldest, most capable children.",
+    "leveraged their unmatched knowledge of the labyrinthine imperial bureaucracy to trap their political rivals in endless legal deadlock."
+  ],
+  Defector: [
+    "abandoned a powerful rival empire, bringing invaluable military intelligence directly to the high command of {state}.",
+    "traded state secrets for safety, transforming the regional political balance in an instant.",
+    "fled across the heavily fortified border at midnight, carrying complete schematics of the enemy's frontier defense network.",
+    "used their knowledge of foreign court politics to help {state} anticipate and counter every major diplomatic maneuver from their former home.",
+    "escaped a purges within a hostile foreign regime, providing the high council of {state} with an exact roster of their deep-cover spies."
+  ],
+  Assassin: [
+    "executed the flawless, silent removal of a foreign commander, dismantling an invasion plan before armies could march.",
+    "left no trace behind after striking down a high-ranking corrupt official in the heart of {capital}.",
+    "infiltrated a highly secure peace summit, eliminating a warmongering dictator and making it appear like natural heart failure.",
+    "used a customized, untraceable poison during a state toast, ending a terrifying dynastic threat in full view of the high court.",
+    "hunted down and neutralized the rogue cell leaders who were planning to detonate an alchemical weapon inside {capital}."
+  ],
+  "Double Agent": [
+    "infiltrated the highest inner circles of a hostile state while secretly feeding strategic misinformation back to {state}.",
+    "played both sides of a delicate border proxy war, accumulating immense personal leverage.",
+    "passed flawless operational plans to a rival military, intentionally omitting a single fatal flaw that led them into an ambush by {state}.",
+    "served as a trusted personal advisor to a foreign monarch while systematically sabotaging their diplomatic alliances behind the scenes.",
+    "narrowly escaped exposure in a foreign court by framing a completely innocent minister, cementing their own position as an untouchable asset."
+  ],
+  "Exile-Plotter": [
+    "banished to the far frontier, spent a quarter-century orchestrating a complex political comeback from afar.",
+    "funded an underground network within {state} while living under the protection of a foreign court.",
+    "used their vast, overseas merchant connections to build a massive mercenary host, preparing for an inevitable return to {capital}.",
+    "smuggled hundreds of subversive pamphlets into {state} to systematically erode public confidence in the regime that cast them out.",
+    "engineered a brilliant diplomatic crisis from a distance, forcing the current rulers of {state} to beg for their return and mediation."
+  ],
+  Heresiarch: [
+    "led a forbidden, highly organized subterranean movement that openly rejected the state's orthodox spiritual laws.",
+    "preached a radical underground theology that rapidly infected the lower labor classes of {state}.",
+    "converted an entire frontier legion to their unrecognized faith, creating a massive, ideologically driven military breakaway threat.",
+    "authored a powerful, banned text that claimed the ruling dynasty of {state} had lost its divine mandate, sparking widespread iconoclasm.",
+    "defied the grand inquisitors in {capital} during a public debate, turning their execution into a catalyst for a full-scale religious schism."
+  ],
+  Blackmailer: [
+    "accumulated an archive of deep secrets regarding the ruling elite, dictating state policy through leverage alone.",
+    "controlled major court appointments in {capital} without ever holding an official government title.",
+    "intercepted a series of highly incriminating letters between a royal heir and a foreign power, using them to extract immense provincial tax exemptions.",
+    "built a secret network of eavesdroppers throughout the high estates of {capital} to ensure no noble could safely oppose their demands.",
+    "held the ultimate proof of a sitting general's past treason, forcing the military command to execute specific tactical maneuvers on a whim."
+  ],
+  // --- HIGH FANTASY (EPIC & ARCANE) ---
+  "Chosen One": [
+    "awoke to an ancient, world-shaping legacy, bearing a mark that compelled the immediate allegiance of the populace.",
+    "became the focal point of a sweeping cross-continental movement to fulfill a mythic destiny.",
+    "bypassed centuries of strict trial rituals by effortlessly drawing a legendary relic that had rejected every noble in {state}.",
+    "unified the disparate, warring clans of {culture} under a single banner, fulfilling a thousands-of-years-old ancestral prophecy.",
+    "survived a cataclysmic disaster completely unscathed, convincing both the high council and the peasantry of their divine mandate."
+  ],
+  Archmage: [
+    "unleashed a monumental display of arcane power that permanently altered the local landscape features around {capital}.",
+    "established a sovereign arcane enclave, forcing the crown to grant magic users total legal immunity.",
+    "constructed an invisible, impenetrable barrier around the borders of {state}, completely halting a massive hostile invasion.",
+    "rewrote the laws of elemental manipulation to single-handedly reverse a multi-year magical blight that was starving the realm.",
+    "transmuted an entire attacking armada into harmless glass just miles off the vulnerable coastline of {capital}."
+  ],
+  "God-Emissary": [
+    "walked out of the deep wilderness claiming direct celestial authority, issuing absolute mandates that the court dared not defy.",
+    "acted as a living avatar, guiding the structural laws of {state} along divine principles.",
+    "performed a series of undeniable, awe-inspiring miracles in the grand square of {capital} to validate their cosmic authority.",
+    "demanded the immediate dismantling of the corrupt high court, speaking with a resonant voice that brought the nobility to their knees.",
+    "instituted a sweeping, fundamental reformation of the spiritual calendar across {state}, aligning civil life with celestial movements."
+  ],
+  "Relic-Keeper": [
+    "safeguarded an ancient, volatile artifact capable of immense destruction, keeping it sealed deep beneath {capital}.",
+    "vowed to protect a mythic item, preventing both internal factions and foreign spies from seizing it.",
+    "smuggled a world-ending relic out of {capital} just as the palace fell, ensuring the artifact remained hidden from the conquering army.",
+    "sacrificed their own eyesight to activate the protective wards sealing a legendary weapon away from the high council's ambition.",
+    "maintained a secret, centuries-old order dedicated to monitoring a slumbering cosmic entity bound beneath the soil of {state}."
+  ],
+  "Oath-Sworn Knight": [
+    "bound themselves to an immutable, cosmic vow that forced them to defend the borders of {state} without rest.",
+    "marched alone into an overwhelming vanguard force to honor a blood oath sworn to a dying dynasty.",
+    "refused a direct royal pardon, choosing to live in permanent exile on the frontier to fulfill the final command of their fallen lord.",
+    "stood as a silent, unyielding sentinel outside the high council chambers in {capital}, bound by honor to protect the seat of power regardless of who sat in it.",
+    "shattered their own family crest to honor a higher vow of absolute poverty and martial service to the destitute classes of {culture}."
+  ],
+  // --- GRIM FANTASY (DARK & GRITTY) ---
+  "Witch-Hunter": [
+    "conducted a brutal, uncompromising purge across the provinces to eliminate forbidden arcane corruption.",
+    "left a trail of ashes through the frontier towns, executing anyone suspected of practicing outlawed magic.",
+    "infiltrated the high courts of {capital} to expose a secret, magic-wielding coven operating among the nobility.",
+    "confiscated an entire library of ancient, occult texts from an estate in {state}, consigning the knowledge to a massive public bonfire.",
+    "wore a mask of absolute piety while deploying specialized, anti-magic iron weaponry to neutralize highly dangerous rogue sorcerers."
+  ],
+  Necromancer: [
+    "shattered the ultimate taboo by raising an army of the fallen to defend an otherwise doomed border city.",
+    "was hunted into exile after deep catacombs beneath {capital} were discovered filled with their dark experiments.",
+    "whispered forbidden incantations in the royal crypts of {state}, forcing long-dead monarchs to yield up their ancient military secrets.",
+    "bound their own life force to a decaying relic, ensuring that striking them down would trigger a catastrophic localized curse.",
+    "engineered a localized resurrection ritual that allowed a fallen vanguard unit to fight on hours after their physical deaths."
+  ],
+  "Plague-Doctor": [
+    "managed a bio-magical catastrophe in the slums of {capital}, utilizing grim, experimental methods to contain the rot.",
+    "walked through the dead zones of {state} when all other healers and administrative officials had fled.",
+    "instituted an absolute, military-enforced quarantine on a wealthy merchant district in {capital}, callously sacrificing the few to save the city.",
+    "discovered that the raging pandemic ravaging {state} was actually an engineered bio-weapon, successfully identifying the specific alchemical antidote.",
+    "harvested biological samples from terminal patients to create a volatile, defensive miasma that could be weaponized on the frontier."
+  ],
+  "Blood-Mage": [
+    "utilized outlawed, sacrifice-fueled sorcery to manipulate the physical endurance of frontline battalions.",
+    "executed a forbidden ritual that exacted a terrible personal toll on their subjects to turn the tide of a siege.",
+    "drew upon their own life essence during a desperate rearguard action, unleashing a crimson wave that withered an entire pursuing cavalry unit.",
+    "concocted a dark, vitality-stealing curse that quietly drained the health of an occupying garrison from across the city walls of {capital}.",
+    "offered their own memories as a catalyst to forge an unbreakable blood-bond between the high council and their elite bodyguards."
+  ],
+  Slayer: [
+    "a scarred monster-hunting mercenary, cleared a vital mountain pass of a terrifying apex beast that had halted trade.",
+    "was hired by the high council to eliminate an unnatural threat lurking within the old ruins.",
+    "tracked a legendary, deep-sea leviathan that was terrorizing the merchant fleets of {state}, returning to {capital} with its severed horn.",
+    "infiltrated a subterranean nest of aggressive troglodytes beneath the frontier mines, single-handedly securing the colony's primary economic engine.",
+    "survived a week-long hunt through a toxic marshland to collect the heart of a primordial stalker that had decimated a whole military scout unit."
+  ],
+  "Sin-Eater": [
+    "an absolute social pariah, tasked with absorbing the spiritual corruption of dying lords to preserve the line of succession.",
+    "lived on the fringes of {capital}, carrying the collective guilt of a dynasty's hidden atrocities.",
+    "absorbed the final, agonizing curses of a dying warlord, ensuring the passing soul did not drag the entire stability of {state} down with it.",
+    "sat by the deathbed of a corrupt high councilor, willingly taking on decades of systemic treason so the heir could inherit an unblemished name.",
+    "was secretly brought into the palace of {capital} at midnight to cleanse a mad monarch, emerging with a fractured mind but a secure realm."
+  ],
+  // --- HUMBLE ORIGINS & ACCIDENTAL HEROES ---
+  "Gate-Keeper": [
+    "a lowly night watchman, defied a direct command and barred the outer gate of {capital}, narrowly preventing a midnight infiltration.",
+    "held a vital checkpoint single-handedly during a chaotic retreat, giving civilian populations time to escape.",
+    "refused a massive fortune in bribes from an advancing mercenary army, locking down the harbor gates of {capital} and sounding the alarm.",
+    "maintained the heavy frontier gates during an intense artillery bombardment, ensuring the garrison's retreat line remained secure.",
+    "memorized every face that entered the inner sanctum of {state} for forty years, identifying a disguised assassin through posture alone."
+  ],
+  "Scullery-Spy": [
+    "an overlooked palace servant, overheard a world-altering conspiracy in the royal kitchens and brought it to the loyal guard.",
+    "intercepted coded letters meant for a foreign defector while cleaning the high chambers.",
+    "poisoned the wine goblets of a treasonous faction during a secret meeting in the palace cellars, stopping a coup before it began.",
+    "utilized the palace's complex servant corridors to safely smuggle a deposed young heir out of {capital} inside a laundry bin.",
+    "noticed a subtle discrepancy in the regular food provisions, uncovering an active plot to slowly starve the monarch of {state}."
+  ],
+  "Conscript-Hero": [
+    "a simple farmhand forced into the military, accidentally slew the enemy general in the chaos of a panicked rout.",
+    "rallied a broken vanguard line using nothing but a broken banner and absolute desperation.",
+    "used their knowledge of rural irrigation networks to flood a valley, completely trapping an advancing heavy cavalry division of a rival nation.",
+    "volunteered for a suicidal rearguard action on the frontier, miraculously surviving while holding off an entire scout platoon with a pitchfork.",
+    "dragged their wounded commander three miles through an active combat zone, preserving the high leadership of the army of {state}."
+  ],
+  "Foundling-Heir": [
+    "raised as a destitute street urchin, was revealed through a birthmark to be the critical missing link to a broken throne.",
+    "discovered by the high council just as a civil succession war threatened to tear {state} apart.",
+    "was picked from the slums of {capital} after an ancient royal relic resonated with their bloodline, shocking the noble houses.",
+    "grew up under a false identity in a border village, unaware that their hidden heritage made them the ultimate political target.",
+    "presented a verified signet ring to the high court, instantly invalidating the claims of the corrupt factions vying for power."
+  ],
+  "Messenger-Runner": [
+    "completed a desperate, non-stop sprint through hostile lines to deliver reinforcement orders, collapsing as the gates opened.",
+    "traversed a crumbling mountain pass in record time to warn {capital} of an incoming flanking detachment.",
+    "swallowed a critical diplomatic missive to keep it hidden from an enemy scouting party, successfully delivering it to the garrison command of {state}.",
+    "navigated a dense, treacherous swamp at midnight to deliver the high council's counter-orders to an advancing vanguard force.",
+    "raced through a city wide firestorm in {capital} to ensure the evacuation orders reached the lower quarters before the walls breached."
+  ],
+  "Stable-Hand": [
+    "sabotaged the cavalry mounts of an invading vanguard force at a crucial bottleneck, crippling their offensive pace.",
+    "provided fresh horses to a fleeing royal family, altering the political survival of the dynasty.",
+    "tended to the elite warhorses of {state}, using a specialized herbal blend to cure a sudden equine plague that threatened the cavalry divisions.",
+    "overheard a treasonous plot spoken by a high-ranking lord while prepping their steed in the royal stables of {capital}.",
+    "loosed an entire herd of thoroughbreds into an occupying army's camp at midnight, causing absolute chaos and delaying their morning march."
+  ],
+  "Hermit-Prophet": [
+    "emerged from decades in the deep wastes to issue an unexpected warning that successfully saved the capital from a natural disaster.",
+    "rejected the wealth of {capital} to live in a cave, where their sudden political insights became highly sought after by rulers.",
+    "accurately predicted the complete collapse of a ruling dynasty of {state}, writing the warning in the dust outside the high court gates.",
+    "was dragged before the high council in chains, only to calmly outline the exact tactical flaws in the nation's upcoming campaign.",
+    "guided a lost, retreating legion through an impassable mountain range after receiving a vision of their plight in the wilderness."
   ]
 };
 
