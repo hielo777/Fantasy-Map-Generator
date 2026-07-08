@@ -1,4 +1,6 @@
 import { gauss, P, ra, rand } from "../utils";
+import type { Burg } from "./burgs-generator";
+
 import type { Religion } from "./religions-generator";
 import type { State } from "./states-generator";
 
@@ -26,6 +28,7 @@ type HistoricalEventType =
   | "discovery" // Lost ruins found, uncharted territory explored
   | "religious"
   | "schism"
+  | "sacked" // a capital captured/sacked during a lost war
   | "diplomacy_memory"
   | "economic" // Added to align with the dynamic economic ledger system outputs
   | "demographic"; // Mass migrations, refugee influxes, population collapses
@@ -208,9 +211,7 @@ const _RELATIONAL_TEMPLATES: Record<FigureRole, Partial<Record<FigureRole, strin
     ]
   },
   Courtesan: {
-    Ruler: [
-      "became the true power behind the throne of {target}, filtering what reality reached the monarch's ears."
-    ],
+    Ruler: ["became the true power behind the throne of {target}, filtering what reality reached the monarch's ears."],
     Regent: [
       "used unmatched social influence to ensure the high court favored {target}'s temporary grip on power over the true heirs."
     ],
@@ -382,6 +383,7 @@ export interface SharedWorldEvent {
   title: string;
   type: HistoricalEventType;
   descriptions: Record<number, string>;
+  victor?: number; // winning state's id, set for war-end events so other systems (e.g. capital sacking) agree with the outcome
 }
 
 // Memory Matrix tracking point weights for dynamically overriding relationship standings
@@ -399,6 +401,7 @@ export interface WorldHistory {
   sharedWorldEvents: Record<number, SharedWorldEvent>;
   diplomaticMemoryMatrix: Record<string, DiplomaticMemoryScore>;
   religionHistory: Record<number, HistoricalEvent[]>;
+  burgHistory: Record<number, HistoricalEvent[]>; // keyed by burg id; currently populated for state capitals only
 }
 
 const EPITHETS: Record<string, string> = {
@@ -553,6 +556,87 @@ const SCHISM_CAUSES = [
   "after a disagreement over the true nature of {deity}",
   "when a charismatic preacher declared the old rites hollow and incomplete"
 ];
+
+
+// what made a capital notable at its founding, keyed to an actual structural flag on the burg
+// (citadel/walls/port/temple/plaza/shanty); {name} is filled with the burg's own name
+const BURG_NOTABLE_TRAITS: Record<string, (name: string) => string> = {
+  citadel: name => `${name}'s founders raised a citadel on the high ground first, and the town grew up around its walls.`,
+  walls: name => `${name} was walled early in its life, a sign of how much its position was worth defending.`,
+  port: name => `${name} grew around its harbor, and its fortunes have always run with the tide of trade.`,
+  temple: name => `${name} was founded around a shrine, and the pilgrims following the road there gave rise to the town itself.`,
+  plaza: name => `${name}'s founders laid out a central market square before much else, betting on trade over defense.`,
+  shanty: name => `${name} grew faster than anyone had planned for, and its ramshackle outer wards still show it.`,
+  // --- Industry, Logistics & Transit ---
+  crossroads: name => `Born at the intersection of two major trade ways, ${name} exists entirely to service the traffic passing through it.`,
+  bridge: name => `${name} began as a single heavily guarded crossing, collecting tolls long before it became a proper town.`,
+  quarry: name => `The deep scars of industry surround ${name}, which grew from a rough workers' camp into a grey stone town.`,
+  academy: name => `${name} developed around a prestigious center of learning, and its economy is still driven by scholars, bookbinders, and student taverns.`,
+  foundry: name => `The air above ${name} is rarely clear; it was built on soot and iron, growing around a massive cluster of furnaces.`,
+  // --- Geography & Survival ---
+  oasis: name => `Surrounded by harsh, unforgiving terrain, ${name} owes its entire existence to a dependable water source that life clings to.`,
+  terraced: name => `Built directly into a steep hillside, ${name}'s narrow, vertical streets feel more like a carved staircase than a traditional town.`,
+  ruins: name => `${name} was built directly into the bones of a much older, forgotten settlement, reusing ancient foundations for modern storefronts.`,
+  choke: name => `Squeezed tightly between two geographic barriers, ${name} is narrow, dense, and built upward rather than outward.`,
+  // --- Social & Political Flavors ---
+  boomtown: name => `${name} sprung up almost overnight following a sudden rush for local resources, giving it a frantic, lawless energy.`,
+  charter: name => `Founded by a specific decree or merchant company, ${name} is meticulously grid-planned and operates under its own unique legal privileges.`,
+  retreat: name => `Originally a quiet haven for the wealthy or reclusive, ${name} slowly transformed into a town as servants and merchants moved in to support them.`,
+  // --- Cultural & Demographic Dominance ---
+  melting: name => `A magnet for travelers from all corners of the map, ${name}'s local culture is an aggressive blend of languages, foods, and customs with no single group holding a true monopoly.`,
+  orthodox: name => `The dominant culture of ${name} is fiercely bound to ancient, unyielding religious traditions, making it an incredibly difficult place for foreign ideas or customs to take root.`,
+  enclave: name => `Though situated in foreign lands, ${name} is dominated by a powerful immigrant diaspora that has meticulously recreated the architecture, laws, and lifestyle of their original homeland.`,
+  patrician: name => `${name}'s culture is strictly dictated by an insular elite of wealthy old bloodlines who deeply look down on outsiders and aggressively guard the local customs from changing.`,
+  guild: name => `Artisans and craft-masters dictate the social rhythm of ${name}; your trade defines your social standing, and the local holidays are all organized around guild cycles.`,
+  frontier: name => `Populated by rugged pioneers and stubborn outcasts, ${name}'s culture is defined by an intense self-reliance and a shared distrust of the capital's laws.`,
+  creative: name => `${name} has long served as a safe haven for painters, poets, and radical thinkers, fostering a vibrant, eccentric street culture that frequently clashes with the ruling class.`,
+  martial: name => `The local population of ${name} is deeply shaped by decades of border warfare, breeding a proud, highly disciplined culture where military veterans hold the highest social prestige.`,
+  schismatic: name => `${name} is culturally fractured right down the middle, with two rival factions constantly vying for ideological dominance over the city's courts and public spaces.`,
+  // --- High Fantasy ---
+  leylined: name => `Built atop a convergence of natural magical currents, ${name} is a place where local architecture defies gravity, and glowing ambient energy fuels daily life.`,
+  feywild: name => `The boundary between worlds is dangerously thin in ${name}; its citizens have adapted to erratic, whimsical local laws and the frequent, unpredictable visits of otherworldly beings.`,
+  immortal: name => `${name} is ruled and heavily influenced by an ancient, long-lived dynasty, resulting in a stagnant, deeply conservative culture that measures social change in centuries rather than years.`,
+  floating: name => `A portion of ${name} rests on massive, levitating shards of earth, splitting the population between those who walk the soil and the magical elite who dwell in the clouds.`,
+  relic: name => `The town is dominated by the colossal, dormant remains of a divine weapon or ancient titan, which the locals have hollowed out and turned into a bustling marketplace.`,
+  // --- Grim Fantasy ---
+  blighted: name => `A lingering, unnatural corruption taints the soil and water of ${name}, breeding a grim, gaunt populace that treats sickness, mutation, and early death as regular facts of life.`,
+  zealot: name => `Paranoia runs rampant through the muddy streets of ${name}, where a radical, witch-hunting cult holds absolute cultural sway, punishing any sign of unorthodoxy with the pyre.`,
+  carrion: name => `${name} thrives on the misfortunes of others, its economy and culture completely built around scavenging battlefield wreckage, processing the dead, or picking over ruins.`,
+  blooddebt: name => `A dark, generational pact hangs over ${name}, dictating a culture of grim compliance where citizens are periodically chosen by lottery to satisfy a sinister tithe to the ruling class.`,
+  subterranean: name => `Driven underground by surface horrors or toxic ash, ${name}'s culture is claustrophobic and utilitarian, where light is a precious currency and fresh air is heavily taxed.`,
+  penitent: name => `Believing themselves cursed by the gods, the citizens of ${name} live in a perpetual state of public mourning, filling the grey streets with silent flagellant processions and austere laws.`,
+  // --- Acoustic & Audio Atmosphere ---
+  echoing: name => `Built inside a deep, rocky ravine, the sound of footsteps, church bells, and shouting in ${name} bounces endlessly off the stone walls, creating a perpetual, deafening din.`,
+  hushed: name => `A heavy, unnerving silence hangs over ${name}, where the locals speak only in hushed whispers and even the stray animals seem to move without making a sound.`,
+  industrial: name => `The air in ${name} is never truly quiet; a rhythmic, mechanical pounding from local waterwheels and steamworks vibrates through the floorboards of every house, day and night.`,
+  // --- Visual & Atmospheric Conditions ---
+  shrouded: name => `Chilled by local waters or magic, ${name} is perpetually choked by a thick, clinging fog that turns its lanterns into dim halos and keeps the upper stories of buildings hidden from view.`,
+  sunbleached: name => `Basked in merciless, blinding light, ${name}'s whitewashed stone walls radiate intense heat, forcing all public life to retreat indoors until the cool of the evening.`,
+  luminescent: name => `When night falls, ${name} transforms; it is lit entirely by strange glowing fungi, bioluminescent waters, or enchanted glass, bathing the streets in an eerie, otherworldly palette.`,
+  // --- Olfactory & Sensory Textures ---
+  brine: name => `The crisp, stinging scent of sea salt, rotting kelp, and wet wood is baked into every timber of ${name}, and a fine mist coats everything in a damp, sticky residue.`,
+  perfumed: name => `To mask the stench of its crowded alleys, ${name}'s upper districts burn constant mountains of incense, filling the air with a cloying, dizzying mixture of spices and smoke.`,
+  ironscent: name => `The metallic tang of blood and wet iron hangs constantly on the wind in ${name}, a grim olfactory reminder of the sprawling slaughterhouses or massive foundries that drive its economy.`,
+  // --- Architectural & Structural Chaos ---
+  vertical: name => `Space is at such a premium in ${name} that its buildings lean precariously over the streets, nearly touching at the rooftops and blocking out the sky to create a labyrinth of dark tunnels.`,
+  submerged: name => `Built on shifting wetlands or a sinking coast, half of ${name} rests on rotting wooden stilts, and its citizens navigate the flooded boardwalks by skiff and gondola.`,
+  labyrinthine: name => `${name} was built without a single straight line; its chaotic tangle of dead ends, blind alleys, and hidden staircases was intentionally designed to confuse invading armies—and still baffles outsiders.`,
+  // --- Historic Triumphs & Tragedies ---
+  phoenix: name => `Built atop a thick layer of ash and scorched earth, ${name} has been burned to the ground a dozen times throughout its bloody history, always defying its enemies by rising again.`,
+  plagued: name => `${name} still bears the psychological scars of a historic quarantine; its older districts remain completely walled off and abandoned, left as silent monuments to the dead.`,
+  cursed: name => `A centuries-old betrayal by the town's founding families is said to have drawn a generational curse upon ${name}, a piece of local lore that citizens still blame for every bad harvest or sudden misfortune.`,
+  sieged: name => `The architecture of ${name} is permanently scarred by a legendary, years-long siege; its old stone structures are riddled with ancient catapult craters and patched with mismatched brickwork.`,
+  // --- Foundational Mysteries & Myths ---
+  exiled: name => `${name} was originally founded as a remote penal colony or a refuge for outcasts, and a fierce, deeply ingrained anti-authoritarian streak still defines the legal code of its descendants.`,
+  monolithic: name => `The town was built directly around a towering, inexplicable black monolith that predates recorded history, an object the locals treat with a mixture of civic pride and quiet dread.`,
+  dragonfall: name => `Legend holds that ${name} marks the exact site where a mythical beast was slain in antiquity; the town's primary economy grew out of harvesting the gargantuan, fossilized bones buried beneath its streets.`,
+  conquered: name => `Once the proud jewel of a fallen empire, ${name} was annexed generations ago by a foreign power, leaving its people culturally divided between imperial loyalists and those who dream of ancestral independence.`,
+  // --- Economic & Social Evolution ---
+  ghosttown: name => `${name} was once a thriving metropolis three times its current size, but a sudden shift in trade routes or resource depletion left entire districts to rot into hollow ghost-neighborhoods.`,
+  pactbound: name => `The charter that founded ${name} was signed under an ancient, bizarre treaty with a non-human faction or local entity, forcing the town to uphold strange, archaic laws to this day to avoid restarting a forgotten war.`,
+  sunken: name => `Old records indicate that a massive cataclysm long ago swallowed half of the original settlement; at low tide, the eerie, barnacle-encrusted spires of "Old ${name}" can still be seen breaking the harbor waves.`
+};
+
 
 const FLAVOR_EVENTS: Record<
   string,
@@ -1342,7 +1426,14 @@ class HistoryModule {
   // export/import — otherwise the memory/coordination behind a state's diplomacy, shared world
   // events, or a religion's history would silently reset every time the page reloads.
   private ensureWorldHistory(): WorldHistory {
-    pack.history ??= { activeGlobalEra: null, sharedWorldEvents: {}, diplomaticMemoryMatrix: {}, religionHistory: {} };
+        pack.history ??= {
+      activeGlobalEra: null,
+      sharedWorldEvents: {},
+      diplomaticMemoryMatrix: {},
+      religionHistory: {},
+      burgHistory: {}
+    };
+
     return pack.history;
   }
 
@@ -1377,6 +1468,16 @@ class HistoryModule {
   private set religionHistory(value: Record<number, HistoricalEvent[]>) {
     this.ensureWorldHistory().religionHistory = value;
   }
+
+  private get burgHistory(): Record<number, HistoricalEvent[]> {
+    return this.ensureWorldHistory().burgHistory;
+  }
+
+  private set burgHistory(value: Record<number, HistoricalEvent[]>) {
+    this.ensureWorldHistory().burgHistory = value;
+  }
+
+
 
   generate(regenerate = false, stateId: number | null = null) {
     TIME && console.time("generateHistory");
@@ -1461,6 +1562,11 @@ class HistoryModule {
     );
     state.figures = figures.sort((a, b) => b.year - a.year);
     state.history = events.sort((a, b) => b.year - a.year);
+
+
+    // Step 3.5: Burg-level moments for the capital (founding notability + any sacking during a lost war)
+    this.burgHistory[state.capital] = this.buildCapitalHistory(state, foundingYear);
+
 
     // Step 3: Write the final mutated culture back to the live global state object so the rest of the map reacts to the shift
     state.culture = updatedDemographics.primaryCultureId;
@@ -1677,10 +1783,25 @@ class HistoryModule {
 
       // Relational Engine: Look for a preceding historical figure to tie down a narrative link
       // We look for characters born 15 to 70 years prior to establish logical timeline pacing
-      const anchor = figures.find(f => f.year < year && year - f.year >= 15 && year - f.year <= 70);
+      // const anchor = figures.find(f => f.year < year && year - f.year >= 15 && year - f.year <= 70);
 
+      // const roleTemplates = _RELATIONAL_TEMPLATES[role];
+      // const templateList = anchor && roleTemplates ? roleTemplates[anchor.role] : undefined;
+
+      // 1. Get the template mappings for the current figure's role
       const roleTemplates = _RELATIONAL_TEMPLATES[role];
-      const templateList = anchor && roleTemplates ? roleTemplates[anchor.role] : undefined;
+
+      // 2. Find ALL valid preceding figures that fit the timeline AND have a defined template relationship
+      const validAnchors = figures.filter(f => {
+        const ageDifference = year - f.year;
+        const fitsTimeframe = ageDifference >= 15 && ageDifference <= 70;
+        const hasValidTemplate = roleTemplates && roleTemplates[f.role] && roleTemplates[f.role]!.length > 0;
+        return fitsTimeframe && hasValidTemplate;
+      });
+
+      // 3. Randomly select an anchor from the pool of valid options, if any exist
+      const anchor = validAnchors.length > 0 ? ra(validAnchors) : undefined;
+      const templateList = anchor ? roleTemplates[anchor.role] : undefined;
 
       if (anchor && templateList && templateList.length > 0 && P(0.4)) {
         // Build relational text line from templates
@@ -1847,6 +1968,80 @@ class HistoryModule {
     const offset = gauss(280, 140, 40, maxOffset);
     return options.year - offset;
   }
+
+    // burg-level moments for a state's capital: a founding tied to why the town actually became
+  // notable, plus any sacking suffered during a war it actually lost. Stored on pack.history,
+  // keyed by burg id, since a burg's story shouldn't vanish if the state itself is later removed.
+  private buildCapitalHistory(state: State, foundingYear: number): HistoricalEvent[] {
+    const capital = pack.burgs[state.capital];
+    if (!capital) return [];
+
+    const events: HistoricalEvent[] = [this.burgFoundingEvent(capital, foundingYear)];
+    events.push(...this.capitalSackEvents(state, capital, foundingYear));
+
+    return events.sort((a, b) => b.year - a.year);
+  }
+
+  private burgFoundingEvent(burg: Burg, foundingYear: number): HistoricalEvent {
+    const name = burg.name || "the settlement";
+
+    // 1. Scan all available keys in BURG_NOTABLE_TRAITS instead of a small hardcoded list
+    const availableTraits = (Object.keys(BURG_NOTABLE_TRAITS) as Array<keyof typeof BURG_NOTABLE_TRAITS>).filter(
+      trait => Number(burg[trait] || 0) > 0
+    );
+
+    // 2. Determine a random number of traits to assign between 4 and 9
+    const targetCount = rand(4, 9);
+    
+    // 3. Shuffle or randomly select up to the target count of unique traits
+    const selectedTraits: string[] = [];
+    const pool = [...availableTraits];
+    
+    while (selectedTraits.length < targetCount && pool.length > 0) {
+      const index = Math.floor(Math.random() * pool.length);
+      const trait = pool.splice(index, 1)[0];
+      selectedTraits.push(BURG_NOTABLE_TRAITS[trait](name));
+    }
+
+    // 4. Combine the descriptions into a single cohesive paragraph
+    const text = selectedTraits.length > 0
+      ? selectedTraits.join(" ")
+      : `${name} began as a modest settlement, its early notability owed more to its people than to any single landmark.`;
+
+    return { year: foundingYear - rand(1, 8), type: "founding", title: `Founding of ${name}`, text };
+  }
+
+  // only the defending side's capital is ever at risk — and only when the attacker actually won
+  // the same coordinated coin flip already used to narrate the state-level war outcome
+  private capitalSackEvents(state: State, capital: Burg, foundingYear: number): HistoricalEvent[] {
+    const events: HistoricalEvent[] = [];
+    const name = capital.name || state.name;
+
+    (state.campaigns || []).forEach(campaign => {
+      if (campaign.start < foundingYear || !campaign.end) return;
+      if (campaign.defender !== state.i) return;
+
+      const startYear = Math.round(campaign.start);
+      const endKey = startYear + 10000; // matches the keying scheme used in warEvents()
+      const outcome = this.sharedWorldEvents[endKey];
+      if (!outcome || outcome.victor !== campaign.attacker) return;
+      if (!P(0.5)) return; // not every lost war reaches all the way to the capital
+
+      const attacker = pack.states[campaign.attacker];
+      events.push({
+        year: Math.round(campaign.end),
+        type: "sacked",
+        title: `Sack of ${name}`,
+        text: `${name} was sacked by the armies of ${
+          attacker?.name || "the enemy"
+        } during the ${campaign.name}, and the scars of that day are still spoken of.`
+      });
+    });
+
+    return events;
+  }
+
+
 
   // builds a founding/schism/holy-war timeline for every real religion (skips "No religion" and removed ones),
   // stored world-level on pack.history since it isn't owned by any single state
@@ -2614,6 +2809,7 @@ class HistoryModule {
           this.sharedWorldEvents[endKey] = {
             title: `End of the ${campaign.name}`,
             type: "peace",
+            victor: attackerWon ? campaign.attacker : campaign.defender,
             descriptions: {
               [campaign.attacker]: attackerWon
                 ? `Fighting in the ${campaign.name} concluded after ${years} year${years === 1 ? "" : "s"}. Banners of victory were raised in our capital as ${defender.name} ceded core territories.`

@@ -17,6 +17,7 @@ const EVENT_COLORS: Record<string, string> = {
   religious: "#9b59b6",
   schism: "#d35400",
   "holy-war": "#922b21",
+  sacked: "#5c0011",
   rebellion: "#e67e22",
   global: "#4a90e2" // Color accent for macro legendary eras
 };
@@ -281,6 +282,14 @@ function render(): void {
     ? renderEvents(religionEvents, "No recorded religious history", state.i)
     : "<div>No recorded religious history</div>";
 
+  const capital = pack.burgs[state.capital];
+  const capitalEvents = (capital && pack.history?.burgHistory?.[capital.i]) || [];
+  const capitalLabel = capital?.name || state.name;
+  const capitalHistoryHtml = capitalEvents.length
+    ? renderEvents(capitalEvents, "No recorded capital history", state.i)
+    : "<div>No recorded capital history</div>";
+
+
   $body.innerHTML = /* html */ `
     <div style="display: flex; align-items: center; gap: .5em; margin: .4em 0; background: rgba(0,0,0,0.03); padding: .4em; border-radius: 6px;">
       <svg class="coaIcon" viewBox="0 0 200 200" style="width: 2.6em; height: 2.6em"><use href="#${coaId}"></use></svg>
@@ -306,6 +315,11 @@ function render(): void {
     <details style="margin: .6em 0; border: 1px solid #ddd; border-radius: 4px; padding: .4em;">
       <summary style="font-weight: bold; cursor: pointer; font-size: 1.05em; outline: none; padding: .2em 0;">🕊️ Religion — ${religionLabel}</summary>
       <div style="margin-top: .4em;">${religionHistoryHtml}</div>
+    </details>
+
+    <details style="margin: .6em 0; border: 1px solid #ddd; border-radius: 4px; padding: .4em;">
+      <summary style="font-weight: bold; cursor: pointer; font-size: 1.05em; outline: none; padding: .2em 0;">🏛️ Capital — ${capitalLabel}</summary>
+      <div style="margin-top: .4em;">${capitalHistoryHtml}</div>
     </details>
 
     <details open style="margin: .6em 0; border: 1px solid #ddd; border-radius: 4px; padding: .4em;">
@@ -351,6 +365,15 @@ function downloadHistory(): void {
   if (religion?.i) {
     data += `\n${religion.name} (${religion.type})\n`;
     religionEvents.forEach(event => {
+      data += `${formatYear(event.year)} - ${event.title}\n${event.text}\n\n`;
+    });
+  }
+
+  const capital = pack.burgs[state.capital];
+  const capitalEvents = (capital && pack.history?.burgHistory?.[capital.i]) || [];
+  if (capital) {
+    data += `\n${capital.name || state.name} (capital)\n`;
+    capitalEvents.forEach(event => {
       data += `${formatYear(event.year)} - ${event.title}\n${event.text}\n\n`;
     });
   }
