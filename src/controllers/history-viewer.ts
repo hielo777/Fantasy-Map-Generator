@@ -289,7 +289,6 @@ function render(): void {
     ? renderEvents(capitalEvents, "No recorded capital history", state.i)
     : "<div>No recorded capital history</div>";
 
-
   $body.innerHTML = /* html */ `
     <div style="display: flex; align-items: center; gap: .5em; margin: .4em 0; background: rgba(0,0,0,0.03); padding: .4em; border-radius: 6px;">
       <svg class="coaIcon" viewBox="0 0 200 200" style="width: 2.6em; height: 2.6em"><use href="#${coaId}"></use></svg>
